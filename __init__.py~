@@ -1,0 +1,2 @@
+import pkgutil
+__path__ = pkgutil.extend_ath(__path__, __name__)
