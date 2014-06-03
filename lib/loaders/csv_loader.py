@@ -8,14 +8,14 @@ def load_csv_info(filepath):
   try:
     if (_platform == "darwin"): #OS X
         with open(filepath, newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            reader = csv.reader(csvfile, dialect='excel')
             print("Opening file "+base)
             for row in reader:
                 if len(row) > 0:
                     rows_to_return.append(row)
     elif (_platform == "win32"): #windows
         with open(filepath, newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            reader = csv.reader(csvfile,dialect='excel')
             print("Opening file "+base)
             for row in reader:
                 if len(row) > 0:

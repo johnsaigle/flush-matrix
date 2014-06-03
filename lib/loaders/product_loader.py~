@@ -26,7 +26,7 @@ def build_products(filepath):
             sensitivity = row[13]
             p = product.Product(product_code, product_name, family_group, density, viscosity_range, viscosity_specs_at_40, viscosity_specs_at_100, sensitivity)
             product_list.append(p)
-            print (product_name)
+            print (p)
         return product_list
     except ValueError as e:
         if e is ValueError:

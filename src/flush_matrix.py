@@ -3,6 +3,7 @@ import sys
 import os
 import inspect
 from flushmatrix.lib.loaders import product_loader
+from flushmatrix.lib.loaders import matrix_loader
 from flushmatrix.lib.entities import product
 try: 
     pass
@@ -19,8 +20,12 @@ except ImportError:
 def load_products(filepath):
     return (product_loader.build_products(filepath))
 
+def load_matrix(filepath):
+    matrix_loader.build_matrix(filepath)
+
 def init_data(data_directory):
     products = load_products(data_directory + 'products.csv')
+    family_group_indices = load_matrix(data_directory + 'matrix.csv')
 
 #MAIN
 working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) # this will return the filepath of the src directory
