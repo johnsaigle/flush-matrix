@@ -1,4 +1,5 @@
 import operator
+#from lib.loaders import csv_loader
 from . import csv_loader
 
 def build_matrix(filepath):
@@ -48,9 +49,7 @@ def build_matrix(filepath):
         # create a dictionary to map family group codes to their indices. 
         # this is essentially just an enum
         family_group_indices = dict(zip(family_group_list, range(0, len(family_group_list))))
-        for i, r in zip(range(len(matrix_rows)), matrix_rows):
-            print(str(i)+". " +str(r))
-        return family_group_indices
+        return (family_group_indices, matrix_rows)
     except ValueError:
         # this will occur if the line is a header, legend or something else not in the compatible matrix form
         pass
