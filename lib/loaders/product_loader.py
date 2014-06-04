@@ -16,10 +16,14 @@ def build_products(filepath):
                 #all products should have these fields
                 continue
             # according to the excel formatting
-            product_code = row[0]
+            try:
+                product_code = int(row[0])
+            except ValueError:
+                #occurs if the product code is not a number
+                continue
             product_name = row[1]
             family_group = row[2]
-            viscosity_range = [row[3],row[4], row[5]] # low, high and type
+            viscosity_range = [row[3], row[4], row[5]] # low, high and type
             density = row[6]
             viscosity_specs_at_40 = [row[7], row[8], row[9]]
             viscosity_specs_at_100 = [row[10], row[11], row[12]]

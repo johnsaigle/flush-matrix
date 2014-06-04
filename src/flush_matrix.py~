@@ -18,13 +18,21 @@ except ImportError:
     from lib.loaders import product_loader
     from lib.entities import product
 
-def generate_flush_factor(next_product, prev_product):
+def generate_flush_factor(prev_product, next_product):
     global products
     family_group_factor = 0
     viscosity_factor = 0
     elemental_factor = 0
     equipment_factor = 0
     # determine family group factor
+    prev_family_group = prev_product.family_group
+    next_family_group = next_product.family_group
+    prev_index = family_group_indices[prev_family_group]
+    next_index = family_group_indices[next_family_group]
+    print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
+    print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
+    family_group_factor = family_group_matrix[prev_index][next_index]
+    print("Family factor: "+str(family_group_factor))
 
     core_factor = family_group_factor + viscosity_factor
     if core_factor < 3:
@@ -79,6 +87,7 @@ while True:
             continue
         else:
             prev_product = products[selection]
+            break
 
     except (ValueError, KeyError) as e:
         if e is ValueError:
@@ -98,6 +107,7 @@ while True:
             continue
         else:
             next_product = products[selection]
+            break
 
     except (ValueError, KeyError) as e:
         if e is ValueError:
