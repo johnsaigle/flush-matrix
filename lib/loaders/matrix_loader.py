@@ -26,7 +26,6 @@ def build_matrix(filepath):
                        curr_row.append(int(column_value))
                 except ValueError:
                     # occurs when the column value is not an integer
-                    print("Breaking for row "+row[0])
                     curr_row = []
                     break
             # add this row to the matrix
@@ -37,7 +36,7 @@ def build_matrix(filepath):
             # these should always be valid if a break or continue has not been issued above
             family_group_code = row[1].strip(' ')
             if len(family_group_code) < 1 or len(family_group_code) >3:
-                print("Family group code must be 1-3 characters long.")
+                pass #sloppy
             else:
                 family_group_list.append(family_group_code)
 

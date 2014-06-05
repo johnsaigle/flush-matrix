@@ -8,3 +8,4 @@ class Product:
         self.viscosity_specs_at_40 = viscosity_specs_at_40 # tuple type: Low, High, Typ
         self.viscosity_specs_at_100 = viscosity_specs_at_100 # tuple type: Low, High, Typ 
         self.sensitivity = sensitivity # strings representing special notes about the product
+        self.elemental_values = {}

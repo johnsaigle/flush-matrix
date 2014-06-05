@@ -2,6 +2,7 @@
 import sys
 import os
 import inspect
+from pprint import pprint
 from flushmatrix.lib.loaders import product_loader
 from flushmatrix.lib.loaders import matrix_loader
 from flushmatrix.lib.entities import product
@@ -18,29 +19,38 @@ except ImportError:
     from lib.loaders import product_loader
     from lib.entities import product
 
-def generate_flush_factor(prev_product, next_product):
-    global products
-    family_group_factor = 0
-    viscosity_factor = 0
-    elemental_factor = 0
-    equipment_factor = 0
-    # determine family group factor
-    prev_family_group = prev_product.family_group
-    next_family_group = next_product.family_group
+def _generate_family_group_factor(prev_family_group, next_family_group):
     prev_index = family_group_indices[prev_family_group]
     next_index = family_group_indices[next_family_group]
     print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
     print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
     family_group_factor = family_group_matrix[prev_index][next_index]
     print("Family factor: "+str(family_group_factor))
+    return family_group_factor
 
+
+def generate_flush_factor(prev_product, next_product):
+    global products
+    family_group_factor = 1
+    viscosity_factor = 1
+    elemental_factor = 1
+    equipment_factor = 1
+    # determine family group factor
+    prev_family_group = prev_product.family_group.lower() 
+    next_family_group = next_product.family_group.lower()
+    family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
+    #determine elemental factor
+    print("Elements:")
+    for key in next_product.elemental_values:
+        print (key)
     core_factor = family_group_factor + viscosity_factor
     if core_factor < 3:
         core_factor = 0
     flush_factor = core_factor * elemental_factor * equipment_factor
     return flush_factor
-def load_products(filepath):
-    return (product_loader.build_products(filepath))
+
+def load_products(product_filepath, elemental_filepath):
+    return (product_loader.build_products(product_filepath, elemental_filepath))
 
 def load_matrix(filepath):
     return (matrix_loader.build_matrix(filepath))
@@ -49,7 +59,7 @@ def init_data(data_directory):
     global products
     global family_group_indices
     global family_group_matrix
-    products = load_products(data_directory + 'products.csv')
+    products = load_products(data_directory + 'products.csv', data_directory+'InspectionPlans.csv')
     matrix_info = load_matrix(data_directory + 'matrix.csv')
     family_group_indices = matrix_info[0]
     family_group_matrix = matrix_info[1]
@@ -69,8 +79,7 @@ else:
 init_data(data_directory)
 global products
 global family_group_matrix
-print(products)
-print(family_group_matrix)
+pprint(products)
 selection = -1
 # allow user to enter in product information
 for i, p in zip(range(len(products)), products):
