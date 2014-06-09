@@ -47,10 +47,12 @@ def assign_elemental_values(product):
         # add elemental value if it exists
         global list_of_elements
         for e in list_of_elements:
-            
             if e.lower() in curr_row[elemental_description_column].lower():
-                print("Match found")
-                element_dictionary[e] = row[elemental_value_column]
+                element_dictionary[e] = curr_row[elemental_value_column]
+        #check for demulsification
+        demulse_text = 'Demulsibility @ 54C Emulsion'.lower()
+        if product.demulse_test == False and demulse_text in curr_row[elemental_value_column]:
+            product.demulse_test = True
         curr_index += 1
         curr_row = elemental_info[curr_index]
     product.elemental_values = element_dictionary
@@ -72,6 +74,7 @@ def load_elemental_info(elemental_filepath):
             material_code_column = header_row.index(h)
         if h.lower() == 'MIC Upper Limit'.lower():
             elemental_value_column = header_row.index(h)
+            print("Upper limit index:" +str(elemental_value_column))
     # sort list by material codes to allow for faster lookup later
     elemental_info = sorted(elemental_info, key=lambda row: row[material_code_column])
 

@@ -9,3 +9,4 @@ class Product:
         self.viscosity_specs_at_100 = viscosity_specs_at_100 # tuple type: Low, High, Typ 
         self.sensitivity = sensitivity # strings representing special notes about the product
         self.elemental_values = {}
+        self.demulse_test = False

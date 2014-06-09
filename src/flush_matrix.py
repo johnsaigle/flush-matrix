@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import math
 import sys
 import os
 import inspect
@@ -28,25 +29,77 @@ def _generate_family_group_factor(prev_family_group, next_family_group):
     print("Family factor: "+str(family_group_factor))
     return family_group_factor
 
+def _generate_elemental_factor(prev_product, next_product):
+    if len(prev_product.elemental_values) > len(next_product.elemental_values):
+        smaller_dictionary = next_product.elemental_values
+        larger_dictionary = prev_product.elemental_values
+    else:
+        smaller_dictionary = prev_product.elemental_values
+        larger_dictionary = next_product.elemental_values
+
+    print(str(len(smaller_dictionary)))
+    # find common elements by iterating over the smaller list
+    shared_elements = []
+    for element in smaller_dictionary:
+        if element in larger_dictionary:
+            shared_elements.append(element)
+
+    # return 1 if there are no shared elements
+    if shared_elements == []:
+        print("No shared elements.")
+        return 1
+    # find the greatest difference between shared elements
+    elemental_differences = []
+    for element in shared_elements:
+        prev_value = float(prev_product.elemental_values[element])
+        next_value = float(next_product.elemental_values[element])
+        max_value = max([prev_value, next_value])
+        min_value = min([prev_value, next_value])
+        elemental_differences.append((max_value - min_value)/min_value)
+    elemental_factor = int(max(elemental_differences))
+
+    print("Elemental factor: " + str(elemental_factor))
+    return elemental_factor
+
+def _generate_viscosity_factor(prev_product, next_product):
+    # compare viscosities -- we use the average value at 100 becuase it's more common
+    typical_viscosity_index = 2 # according to Product data structure
+    prev_viscosity_avg = prev_product.viscosity_specs_at_100[typical_viscosity_index] # this variabel is a tuple; the '2th' value is 'Typ' -- the typical (or average) cSt measurement for the product
+    next_viscosity_avg = next_product.viscosity_specs_at_100[typical_viscosity_index] 
+    # if there is no proepr value for either average, use specs at 40 instead
+    if prev_viscosity_avg == None or prev_viscosity_avg == '' or next_viscosity_avg == None or next_viscosity_avg == '':
+        prev_viscosity_avg = prev_product.viscosity_specs_at_40[typical_viscosity_index] 
+        next_viscosity_avg = next_product.viscosity_specs_at_40[typical_viscosity_index] 
+    difference = abs(float(prev_viscosity_avg) - float(next_viscosity_avg)) # absolute difference between values
+    # normalize the difference based on some value decided by the user
+    normalization_interval = 3.0 # magic number until I create the config file
+    adjusted_difference_factor = 0.1 * int(difference / normalization_interval) # cast to integer here because theremainder is not important to us
+    viscosity_factor = 1.0 + adjusted_difference_factor # 1.0 is the default factor 
+    print("Viscosity factor: "+str(viscosity_factor))
+    return viscosity_factor
 
 def generate_flush_factor(prev_product, next_product):
     global products
     family_group_factor = 1
     viscosity_factor = 1
     elemental_factor = 1
-    equipment_factor = 1
+    equipment_factor = 1 # may not need this in the end
     # determine family group factor
     prev_family_group = prev_product.family_group.lower() 
     next_family_group = next_product.family_group.lower()
     family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
-    #determine elemental factor
-    print("Elements:")
-    for key in next_product.elemental_values:
-        print (key)
+    #determine elemental factor if products share a family group
+    elemental_factor = _generate_elemental_factor(prev_product, next_product)
+    # viscosity factor -- use averages and determine the difference
+    viscosity_factor = _generate_viscosity_factor(prev_product, next_product)
+    # demulse factor
+    if prev_product.demulse_test == True or next_product.demulse_test == False:
+        print("Demulse factor present.")
     core_factor = family_group_factor + viscosity_factor
     if core_factor < 3:
-        core_factor = 0
-    flush_factor = core_factor * elemental_factor * equipment_factor
+       core_factor = 0
+    flush_factor = core_factor * elemental_factor 
+    print("Overall flush factor: "+str(flush_factor))
     return flush_factor
 
 def load_products(product_filepath, elemental_filepath):
