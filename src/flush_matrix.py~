@@ -26,7 +26,10 @@ def _generate_family_group_factor(prev_family_group, next_family_group):
     print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
     print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
     family_group_factor = family_group_matrix[prev_index][next_index]
-    print("Family factor: "+str(family_group_factor))
+
+    family_group_factor += 1
+
+    print("Family group factor: "+str(family_group_factor))
     return family_group_factor
 
 def _generate_elemental_factor(prev_product, next_product):
@@ -57,6 +60,10 @@ def _generate_elemental_factor(prev_product, next_product):
         min_value = min([prev_value, next_value])
         elemental_differences.append((max_value - min_value)/min_value)
     elemental_factor = int(max(elemental_differences))
+
+    if elemental_factor == 0:
+        # all elemental values are the same. we will use a multiplier of 1
+        elemental_factor = 1
 
     print("Elemental factor: " + str(elemental_factor))
     return elemental_factor
@@ -97,9 +104,10 @@ def generate_flush_factor(prev_product, next_product):
         print("Demulse factor present.")
     core_factor = family_group_factor + viscosity_factor
     if core_factor < 3:
-       core_factor = 0
+        print("Sum of family group factor and viscosity factor is less than 3. Core factor set to 0.")
+        core_factor = 0
     flush_factor = core_factor * elemental_factor 
-    print("Overall flush factor: "+flush_factor)
+    print("Overall flush factor: "+str(flush_factor))
     return flush_factor
 
 def load_products(product_filepath, elemental_filepath):
@@ -107,6 +115,19 @@ def load_products(product_filepath, elemental_filepath):
 
 def load_matrix(filepath):
     return (matrix_loader.build_matrix(filepath))
+
+def find_match(product):
+    global products
+    prev_product = None
+    for p in products:
+        if p.material_code == selection:
+            prev_product = p
+            return prev_product
+
+    # if no product found
+    if prev_product == None:
+       print("Material code provided does not match any product.")
+       return None
 
 def init_data(data_directory):
     global products
@@ -135,19 +156,14 @@ global family_group_matrix
 selection = -1
 # allow user to enter in product information
 for i, p in zip(range(len(products)), products):
-    print(str(i) + " -- " + p.name)
+    print(str(i) + " -- " + str(p.material_code))
 while True:
     try:
-        selection = input("Enter number for previous product: ")
-        if len(selection) < 1 or len(selection) > 2:
-            print("Invalid input size: should be one or two characters.")
-            continue
+        prev_product = None
+        selection = input("Enter product code for previous product: ")
         selection = int(selection)
-        if selection < 0 or selection > len(products):
-            print("Selection is out of range.")
-            continue
-        else:
-            prev_product = products[selection]
+        prev_product = find_match(p)
+        if not prev_product is None:
             break
 
     except (ValueError, KeyError) as e:
@@ -158,16 +174,11 @@ while True:
         continue
 while True:
     try:
-        selection = input("Enter number for next product: ")
-        if len(selection) < 1 or len(selection) > 2:
-            print("Invalid input size: should be one or two characters.")
-            continue
+        next_product = None
+        selection = input("Enter product code for next product: ")
         selection = int(selection)
-        if selection < 0 or selection > len(products):
-            print("Selection is out of range.")
-            continue
-        else:
-            next_product = products[selection]
+        next_product = find_match(p)
+        if not next_product is None:
             break
 
     except (ValueError, KeyError) as e:
@@ -176,4 +187,5 @@ while True:
         if e is KeyError:
             print("Code does not correspond to any product.")
         continue
+print(prev_product.name, next_product.name)
 generate_flush_factor(prev_product, next_product)
