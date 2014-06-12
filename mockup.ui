@@ -1,81 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>FlushTool</class>
+ <widget class="QDialog" name="FlushTool">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>214</width>
-    <height>207</height>
+    <width>236</width>
+    <height>262</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Flush Tool</string>
   </property>
-  <widget class="QComboBox" name="comboBox">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>30</y>
-     <width>69</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <item>
-    <property name="text">
-     <string notr="true">Tellus</string>
-    </property>
-   </item>
-  </widget>
-  <widget class="QComboBox" name="comboBox_2">
-   <property name="geometry">
-    <rect>
-     <x>90</x>
-     <y>30</y>
-     <width>69</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <item>
-    <property name="text">
-     <string>Rotella</string>
-    </property>
-   </item>
-  </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>10</y>
-     <width>71</width>
+     <y>38</y>
+     <width>93</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Prev. Product</string>
+    <string>Prev. Product Code</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>10</y>
-     <width>71</width>
+     <x>110</x>
+     <y>38</y>
+     <width>91</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Next Product</string>
+    <string>Next Product Code</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>70</y>
-     <width>46</width>
-     <height>13</height>
+     <y>74</y>
+     <width>33</width>
+     <height>16</height>
     </rect>
    </property>
    <property name="text">
@@ -85,9 +55,9 @@
   <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>70</y>
-     <width>61</width>
+     <x>110</x>
+     <y>74</y>
+     <width>54</width>
      <height>16</height>
     </rect>
    </property>
@@ -95,13 +65,13 @@
     <string>Destination</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="comboBox_3">
+  <widget class="QComboBox" name="combo_source">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>90</y>
-     <width>69</width>
-     <height>22</height>
+     <x>9</x>
+     <y>95</y>
+     <width>71</width>
+     <height>20</height>
     </rect>
    </property>
    <item>
@@ -109,14 +79,19 @@
      <string>ABB</string>
     </property>
    </item>
+   <item>
+    <property name="text">
+     <string>BF713</string>
+    </property>
+   </item>
   </widget>
-  <widget class="QComboBox" name="comboBox_4">
+  <widget class="QComboBox" name="combo_destination">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>90</y>
-     <width>91</width>
-     <height>22</height>
+     <x>110</x>
+     <y>95</y>
+     <width>101</width>
+     <height>20</height>
     </rect>
    </property>
    <item>
@@ -124,26 +99,28 @@
      <string>Swing Tank A</string>
     </property>
    </item>
+   <item>
+    <property name="text">
+     <string>Swing Tank B</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Swing Tank C</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Dedicated Tank 1</string>
+    </property>
+   </item>
   </widget>
-  <widget class="QLabel" name="label_5">
+  <widget class="QPushButton" name="button_generate_flush">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>130</y>
-     <width>71</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Blend Size</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton">
-   <property name="geometry">
-    <rect>
-     <x>90</x>
-     <y>150</y>
-     <width>91</width>
+     <x>120</x>
+     <y>140</y>
+     <width>84</width>
      <height>23</height>
     </rect>
    </property>
@@ -151,14 +128,151 @@
     <string>Generate Flush </string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
+  <widget class="QLineEdit" name="blend_volume_line">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>141</y>
+     <width>95</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>0</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="linetext_prev">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>55</y>
+     <width>95</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="linetext_next">
+   <property name="geometry">
+    <rect>
+     <x>110</x>
+     <y>55</y>
+     <width>95</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>150</y>
+     <y>125</y>
+     <width>64</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Blend Size (L)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_6">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>-10</y>
+     <width>231</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Flush Volume Calculator&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>170</y>
+     <width>46</width>
+     <height>13</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt; text-decoration: underline;&quot;&gt;Result:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>160</y>
+     <width>231</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="Line" name="line_2">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>30</y>
+     <width>231</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QSpinBox" name="spinBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>220</y>
+     <width>42</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_8">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>200</y>
      <width>71</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Repetitions</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_9">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>200</y>
+     <width>91</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Flush Volume (L)</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>220</y>
+     <width>133</width>
      <height>20</height>
     </rect>
+   </property>
+   <property name="text">
+    <string>000</string>
    </property>
   </widget>
  </widget>
