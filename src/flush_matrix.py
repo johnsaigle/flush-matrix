@@ -70,7 +70,7 @@ def _generate_elemental_factor(prev_product, next_product):
 def _generate_viscosity_factor(prev_product, next_product):
     # compare viscosities -- we use the average value at 100 becuase it's more common
     typical_viscosity_index = 2 # according to Product data structure
-    prev_viscosity_avg = prev_product.viscosity_specs_at_100[typical_viscosity_index] # this variabel is a tuple; the '2th' value is 'Typ' -- the typical (or average) cSt measurement for the product
+    prev_viscosity_avg = prev_product.viscosity_specs_at_100[typical_viscosity_index] # this variable is a tuple; the '2th' value is 'Typ' -- the typical (or average) cSt measurement for the product
     next_viscosity_avg = next_product.viscosity_specs_at_100[typical_viscosity_index] 
     # if there is no proepr value for either average, use specs at 40 instead
     if prev_viscosity_avg == None or prev_viscosity_avg == '' or next_viscosity_avg == None or next_viscosity_avg == '':
@@ -128,28 +128,38 @@ def find_match(product):
        print("Material code provided does not match any product.")
        return None
 
-def init_data(data_directory):
+def find_data_file(filename):
+    if getattr(sys, 'frozen', False):
+        # THe application is frozen (cx_freeze)
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # not frozen
+        data_dir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))) + '\\data\\'
+
+   return os.path.join(datadir, filename)
+
+def init_data():
     global products
     global family_group_indices
     global family_group_matrix
-    products = load_products(data_directory + 'products.csv', data_directory+'InspectionPlans.csv')
-    matrix_info = load_matrix(data_directory + 'matrix.csv')
+    products = load_products(find_data_file('products.csv'), find_data_file('InspectionPlans.csv'))
+    matrix_info = load_matrix(find_data_file('matrix.csv'))
     family_group_indices = matrix_info[0]
     family_group_matrix = matrix_info[1]
 
 #MAIN
-working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) # this will return the filepath of the src directory
-print(working_dir)
-if working_dir.endswith('/src'): # unix 
-    script_root_directory = working_dir[:-4] # removes the final four characters
-    data_directory = script_root_directory + '/data/'
-elif working_dir.endswith('\\src'): #windows
-    script_root_directory = working_dir[:-4] # removes the final four characters
-    data_directory = script_root_directory + '\\data\\'
-else:
-    print ("Loading error: script not launched from within src directory")
-    sys.exit()
-init_data(data_directory)
+#working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) # this will return the filepath of the src directory
+#print(working_dir)
+#if working_dir.endswith('/src'): # unix 
+#    script_root_directory = working_dir[:-4] # removes the final four characters
+#    data_directory = script_root_directory + '/data/'
+#elif working_dir.endswith('\\src'): #windows
+#    script_root_directory = working_dir[:-4] # removes the final four characters
+#    data_directory = script_root_directory + '\\data\\'
+#else:
+#    print ("Loading error: script not launched from within src directory")
+#    sys.exit()
+init_data()
 global products
 global family_group_matrix
 selection = -1
