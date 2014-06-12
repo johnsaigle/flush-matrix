@@ -7,6 +7,9 @@ from flushmatrix.lib.loaders import product_loader
 from flushmatrix.lib.loaders import matrix_loader
 from flushmatrix.lib.entities import product
 
+class MyException(Exception):
+    pass
+
 try: 
     pass
     #from lib.loaders import product_loader
@@ -83,8 +86,21 @@ def _generate_viscosity_factor(prev_product, next_product):
     print("Viscosity factor: "+str(viscosity_factor))
     return viscosity_factor
 
-def generate_flush_factor(prev_product, next_product):
+def generate_flush_factor(prev_one, next_one):
     global products
+    if products is None:
+        init_data()
+    
+    # a bit of a duct tape fix between ui and text-based modes... should refactor later
+    if type(prev_one) is int:
+        prev_product = find_match(prev_one)
+    else:
+        prev_product = prev_one
+    if type(next_one) is int:
+        next_product = find_match(next_one)
+    else:
+        next_product = next_one
+
     family_group_factor = 1
     viscosity_factor = 1
     elemental_factor = 1
@@ -105,7 +121,6 @@ def generate_flush_factor(prev_product, next_product):
         print("Sum of family group factor and viscosity factor is less than 3. Core factor set to 0.")
         core_factor = 0
     flush_factor = core_factor * elemental_factor 
-    print("Overall flush factor: "+str(flush_factor))
     return flush_factor
 
 def load_products(product_filepath, elemental_filepath):
@@ -114,17 +129,19 @@ def load_products(product_filepath, elemental_filepath):
 def load_matrix(filepath):
     return (matrix_loader.build_matrix(filepath))
 
-def find_match(product):
+def find_match(product_code):
     global products
-    prev_product = None
+    product = None
     for p in products:
-        if p.material_code == selection:
-            prev_product = p
-            return prev_product
+        if p.material_code == product_code:
+            product = p
+            return product
 
     # if no product found
-    if prev_product == None:
-       print("Material code provided does not match any product.")
+    if product == None:
+       msg = "Material code '{0}' does not match any product."
+       errormsg = msg.format(product_code)
+       print(errormsg)
        return None
 
 def find_data_file(filename):
@@ -157,42 +174,45 @@ def init_data():
 #else:
 #    print ("Loading error: script not launched from within src directory")
 #    sys.exit()
-init_data()
-global products
-global family_group_matrix
-selection = -1
-# allow user to enter in product information
-for i, p in zip(range(len(products)), products):
-    print(str(i) + " -- " + str(p.material_code))
-while True:
-    try:
-        prev_product = None
-        selection = input("Enter product code for previous product: ")
-        selection = int(selection)
-        prev_product = find_match(p)
-        if not prev_product is None:
-            break
+if __name__ == "__main__":
+    init_data()
+    global products
+    global family_group_matrix
+    selection = -1
+    # allow user to enter in product information
+    for i, p in zip(range(len(products)), products):
+        print(str(i) + " -- " + str(p.material_code))
+    while True:
+        try:
+            prev_product = None
+            selection = input("Enter product code for previous product: ")
+            selection = int(selection)
+            prev_product = find_match(selection)
+            if not prev_product is None:
+                break
+    
+        except (ValueError, KeyError) as e:
+            if e is ValueError:
+                print("Selection must be a number.")
+            if e is KeyError:
+                print("Code does not correspond to any product.")
+            continue
+    while True:
+        try:
+            next_product = None
+            selection = input("Enter product code for next product: ")
+            selection = int(selection)
+            next_product = find_match(selection)
+            if not next_product is None:
+                break
+    
+        except (ValueError, KeyError) as e:
+            if e is ValueError:
+                print("Selection must be a number.")
+            if e is KeyError:
+                print("Code does not correspond to any product.")
+            continue
+    print(prev_product.name, next_product.name)
+    flush_factor = generate_flush_factor(prev_product, next_product)
+    print("Overall flush factor: "+str(flush_factor))
 
-    except (ValueError, KeyError) as e:
-        if e is ValueError:
-            print("Selection must be a number.")
-        if e is KeyError:
-            print("Code does not correspond to any product.")
-        continue
-while True:
-    try:
-        next_product = None
-        selection = input("Enter product code for next product: ")
-        selection = int(selection)
-        next_product = find_match(p)
-        if not next_product is None:
-            break
-
-    except (ValueError, KeyError) as e:
-        if e is ValueError:
-            print("Selection must be a number.")
-        if e is KeyError:
-            print("Code does not correspond to any product.")
-        continue
-print(prev_product.name, next_product.name)
-generate_flush_factor(prev_product, next_product)
