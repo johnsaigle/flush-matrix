@@ -1,9 +1,10 @@
 import os
+import xlrd
 from . import csv_loader
 from ..entities import product
 
 global list_of_elements
-list_of_elements = [ 'Barium',
+list_of_elements = [ 'Barium', # this should later be initialized in a config file
                      'Calcium',
                      'Copper',
                      'Chromium',
@@ -78,42 +79,19 @@ def load_elemental_info(elemental_filepath):
     # sort list by material codes to allow for faster lookup later
     elemental_info = sorted(elemental_info, key=lambda row: row[material_code_column])
 
-def build_products(family_group_filepath, elemental_filepath):
+def build_products(filepath):
     """ Generates a list of all products by reading in from a csv file.
         As of now, the family group file should be 'products.csv' and the 
         elemental file should be ''InspectionPlans.csv' """
     try:
-        curr_file = family_group_filepath
-        product_info = csv_loader.load_csv_info(family_group_filepath)
-        if product_info == None:
-            print('No product info.')
-            return
-        product_list = []
-        for row in product_info:
-            # the first two rows are junk... this should be done less sloppily later
-            if row[0] == '' or row[1] == '' or row[2] == '': 
-                #all products should have these fields
-                continue
-            # according to the excel formatting
-            try:
-                product_code = int(row[0])
-            except ValueError:
-                #occurs if the product code is not a number
-                continue
-            product_name = row[1]
-            family_group = row[2]
-            viscosity_range = [row[3], row[4], row[5]] # low, high and type
-            density = row[6]
-            viscosity_specs_at_40 = [row[7], row[8], row[9]]
-            viscosity_specs_at_100 = [row[10], row[11], row[12]]
-            sensitivity = row[13]
-            p = product.Product(product_code, product_name, family_group, density, viscosity_range, viscosity_specs_at_40, viscosity_specs_at_100, sensitivity)
-            product_list.append(p)
-        
-        curr_file = elemental_filepath
-        load_elemental_info(elemental_filepath)
-        for p in product_list:
-            assign_elemental_values(p)
+        product_book = xlrd.open_workbook(filepath)
+        print("The number of worksheets is " + str(product_book.sheets))
+        print("Sheet names: ")
+        print(product_book.sheet_names())
+        product_sheet = product_book.sheet_by_name('Products')
+        for index in range(product_sheet.nrows):
+            print (product_sheet.row(index))
+        product_list = None
         return product_list
 
     except ValueError as e:

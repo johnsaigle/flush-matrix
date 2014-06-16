@@ -124,7 +124,7 @@ def generate_flush_factor(prev_one, next_one):
     return flush_factor
 
 def load_products(product_filepath, elemental_filepath):
-    return (product_loader.build_products(product_filepath, elemental_filepath))
+    return (product_loader.build_products(product_filepath))
 
 def load_matrix(filepath):
     return (matrix_loader.build_matrix(filepath))
@@ -157,7 +157,7 @@ def init_data():
     global products
     global family_group_indices
     global family_group_matrix
-    products = load_products(find_data_file('products.csv'), find_data_file('InspectionPlans.csv'))
+    products = load_products(find_data_file('Flshtool.xls'), find_data_file('InspectionPlans.csv'))
     matrix_info = load_matrix(find_data_file('matrix.csv'))
     family_group_indices = matrix_info[0]
     family_group_matrix = matrix_info[1]
@@ -179,6 +179,9 @@ if __name__ == "__main__":
     global products
     global family_group_matrix
     selection = -1
+    if products == None:
+        print("Error loading product information. Exiting.")
+        quit()
     # allow user to enter in product information
     for i, p in zip(range(len(products)), products):
         print(str(i) + " -- " + str(p.material_code))
