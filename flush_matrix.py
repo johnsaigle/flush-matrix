@@ -74,7 +74,7 @@ def _generate_viscosity_factor(prev_product, next_product):
     typical_viscosity_index = 2 # according to Product data structure
     prev_viscosity_avg = prev_product.viscosity_specs_at_100[typical_viscosity_index] # this variable is a tuple; the '2th' value is 'Typ' -- the typical (or average) cSt measurement for the product
     next_viscosity_avg = next_product.viscosity_specs_at_100[typical_viscosity_index] 
-    # if there is no proepr value for either average, use specs at 40 instead
+    # if there is no proper value for either average, use specs at 40 instead
     if prev_viscosity_avg == None or prev_viscosity_avg == '' or next_viscosity_avg == None or next_viscosity_avg == '':
         prev_viscosity_avg = prev_product.viscosity_specs_at_40[typical_viscosity_index] 
         next_viscosity_avg = next_product.viscosity_specs_at_40[typical_viscosity_index] 
@@ -157,23 +157,13 @@ def init_data():
     global products
     global family_group_indices
     global family_group_matrix
-    products = load_products(find_data_file('Flshtool.xls'), find_data_file('InspectionPlans.csv'))
+    print("Initializing data...")
+    products = load_products(find_data_file('product and additive information.xlsx'), find_data_file('InspectionPlans.csv'))
     matrix_info = load_matrix(find_data_file('matrix.csv'))
     family_group_indices = matrix_info[0]
     family_group_matrix = matrix_info[1]
 
-#MAIN
-#working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) # this will return the filepath of the src directory
-#print(working_dir)
-#if working_dir.endswith('/src'): # unix 
-#    script_root_directory = working_dir[:-4] # removes the final four characters
-#    data_directory = script_root_directory + '/data/'
-#elif working_dir.endswith('\\src'): #windows
-#    script_root_directory = working_dir[:-4] # removes the final four characters
-#    data_directory = script_root_directory + '\\data\\'
-#else:
-#    print ("Loading error: script not launched from within src directory")
-#    sys.exit()
+# launch a script component if the GUI isn't used
 if __name__ == "__main__":
     init_data()
     global products
@@ -183,8 +173,8 @@ if __name__ == "__main__":
         print("Error loading product information. Exiting.")
         quit()
     # allow user to enter in product information
-    for i, p in zip(range(len(products)), products):
-        print(str(i) + " -- " + str(p.material_code))
+    for p in products:
+        print(str(p.material_code) + " -- " + str(p.name))
     while True:
         try:
             prev_product = None

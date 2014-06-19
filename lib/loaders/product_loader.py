@@ -3,61 +3,6 @@ import xlrd
 from . import csv_loader
 from ..entities import product
 
-global list_of_elements
-list_of_elements = [ 'Barium', # this should later be initialized in a config file
-                     'Calcium',
-                     'Copper',
-                     'Chromium',
-                     'Iron',
-                     'Lead',
-                     'Nickel',
-                     'Nitrogen',
-                     'Molybdenum',
-                     'Silicon',
-                     'Silver',
-                     'Sulphur',
-                     'Tin',
-                     'Titanium',
-                     'Magnesium',
-                     'Phosphorus',
-                     'Zinc',
-                    ]
-
-def assign_elemental_values(product):
-    global elemental_info
-    global material_code_column
-    global elemental_value_column
-    global elemental_description_column
-    element_dictionary= {}
-
-    # find first index of the products' material code in the elemental info array
-    first_index = None
-    for row in elemental_info:
-        if str(product.material_code) not in row[material_code_column]:
-           continue 
-        first_index = elemental_info.index(row)
-        break
-    if first_index is None:
-        print("No information found for product "+product.name)
-        return None
-    initial_row = elemental_info[first_index]
-    curr_row = initial_row
-    curr_index = first_index
-    # check each row for elemental values
-    while str(product.material_code) in curr_row[material_code_column]:
-        # add elemental value if it exists
-        global list_of_elements
-        for e in list_of_elements:
-            if e.lower() in curr_row[elemental_description_column].lower():
-                element_dictionary[e] = curr_row[elemental_value_column]
-        #check for demulsification
-        demulse_text = 'Demulsibility @ 54C Emulsion'.lower()
-        if product.demulse_test == False and demulse_text in curr_row[elemental_value_column]:
-            product.demulse_test = True
-        curr_index += 1
-        curr_row = elemental_info[curr_index]
-    product.elemental_values = element_dictionary
-
 def load_elemental_info(elemental_filepath):
     global elemental_info 
     elemental_info = csv_loader.load_csv_info(elemental_filepath)
@@ -80,20 +25,55 @@ def load_elemental_info(elemental_filepath):
     elemental_info = sorted(elemental_info, key=lambda row: row[material_code_column])
 
 def build_products(filepath):
-    """ Generates a list of all products by reading in from a csv file.
-        As of now, the family group file should be 'products.csv' and the 
-        elemental file should be ''InspectionPlans.csv' """
+    """Reads data from excel spreadsheets to build data representations of products"""
+    product_list = []
     try:
-        product_book = xlrd.open_workbook(filepath)
-        print("The number of worksheets is " + str(product_book.sheets))
-        print("Sheet names: ")
-        print(product_book.sheet_names())
-        product_sheet = product_book.sheet_by_name('Products')
-        for index in range(product_sheet.nrows):
-            print (product_sheet.row(index))
-        product_list = None
+        workbook = xlrd.open_workbook(filepath)
+        print("Loading products from excel...")
+        # build products
+        worksheet = workbook.sheet_by_name('Product Information')
+        num_rows = worksheet.nrows - 1
+        num_cells = worksheet.ncols - 1
+
+        # map column names to indices for readability
+        CODE_COL = 0
+        NAME_COL = 1
+        VISC_40_LOW_COL = 2
+        VISC_40_HIGH_COL = 3
+        VISC_100_LOW_COL = 4
+        VISC_100_HIGH_COL = 5
+        curr_row = 1
+        while curr_row < num_rows:
+            curr_row += 1 # we can skip the header rows
+            code = int(worksheet.cell_value(curr_row, CODE_COL))
+            name = worksheet.cell_value(curr_row, NAME_COL)
+            visc_40_low = worksheet.cell_value(curr_row, VISC_40_LOW_COL)
+            visc_40_high = worksheet.cell_value(curr_row, VISC_40_HIGH_COL)
+            visc_100_low = worksheet.cell_value(curr_row, VISC_100_LOW_COL)
+            visc_100_high = worksheet.cell_value(curr_row, VISC_100_HIGH_COL)
+            elemental_values = {
+                    'Aluminum' : worksheet.cell_value(curr_row, 6),
+                    'Barium' : worksheet.cell_value(curr_row, 7),
+                    'Calcium' : worksheet.cell_value(curr_row, 8),
+                    'Copper' : worksheet.cell_value(curr_row, 9),
+                    'Chromium' : worksheet.cell_value(curr_row, 10),
+                    'Iron' : worksheet.cell_value(curr_row, 11),
+                    'Lead' : worksheet.cell_value(curr_row, 12),
+                    'Nickel' : worksheet.cell_value(curr_row, 13),
+                    'Nitrogen' : worksheet.cell_value(curr_row, 14),
+                    'Molybdenum' : worksheet.cell_value(curr_row, 15),
+                    'Silicon' : worksheet.cell_value(curr_row, 16),
+                    'Silver' : worksheet.cell_value(curr_row, 17),
+                    'Sulphur' : worksheet.cell_value(curr_row, 18),
+                    'Tin' : worksheet.cell_value(curr_row, 19),
+                    'Titanium' : worksheet.cell_value(curr_row, 20),
+                    'Magnesium' : worksheet.cell_value(curr_row, 21),
+                    'Phosphorus' : worksheet.cell_value(curr_row, 22),
+                    'Zinc' : worksheet.cell_value(curr_row, 23)
+                }
+            p = product.Product(code, name, elemental_values, visc_40_low, visc_40_high, visc_100_low,visc_100_high)
+            product_list.append(p)
         return product_list
 
     except ValueError as e:
         pass
-
