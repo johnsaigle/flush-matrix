@@ -7,27 +7,6 @@ from ..entities import product
     #for cell in row:
         #if cell.value ==
 
-def load_elemental_info(elemental_filepath):
-    global elemental_info 
-    elemental_info = csv_loader.load_csv_info(elemental_filepath)
-    header_row = elemental_info[0] # this is a 2D array, so the first element is the first row
-    # determine locations of relevant columns based on SAP naming conventions
-    global elemental_description_column
-    global material_code_column
-    global elemental_value_column
-    for h in header_row:
-        if h is None or h == '':
-            continue
-        if h.lower() == 'MIC description'.lower():
-            elemental_description_column = header_row.index(h)
-        if h.lower() == 'Material'.lower():
-            material_code_column = header_row.index(h)
-        if h.lower() == 'MIC Upper Limit'.lower():
-            elemental_value_column = header_row.index(h)
-            print("Upper limit index:" +str(elemental_value_column))
-    # sort list by material codes to allow for faster lookup later
-    elemental_info = sorted(elemental_info, key=lambda row: row[material_code_column])
-
 def build_products(filepath):
     """Reads data from excel spreadsheets to build data representations of products"""
     product_list = []

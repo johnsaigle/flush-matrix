@@ -5,39 +5,16 @@ import os
 import inspect
 from flushmatrix.lib.loaders import product_loader
 from flushmatrix.lib.loaders import matrix_loader
+from flushmatrix.lib.loaders import equipment_laoder
 from flushmatrix.lib.entities import product
-
-class MyException(Exception):
-    pass
-
-try: 
-    pass
-    #from lib.loaders import product_loader
-    #from lib.entities import product
-except ImportError:
-    working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) # this will return the filepath of the src directory
-    if working_dir in sys.path: 
-        raise
-    sys.path.append(working_dir)
-    from lib.loaders import product_loader
-    from lib.entities import product
+from flushmatrix.lib.entities import equipment
 
 def ln_partial(viscosity_value, percentage_in_blend):
+    """Returns the partial ln of a product given its viscosity and concentration in a blend."""
     return (percentage_in_blend * math.log(viscosity_value)) / math.log(1000*viscosity_value)
 
-def _generate_family_group_factor(prev_family_group, next_family_group):
-    prev_index = family_group_indices[prev_family_group]
-    next_index = family_group_indices[next_family_group]
-    print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
-    print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
-    family_group_factor = family_group_matrix[prev_index][next_index]
-
-    family_group_factor += 1
-
-    print("Family group factor: "+str(family_group_factor))
-    return family_group_factor
-
 def get_num_flushes(previous_concentration, concentration_thresholds, blend_volume, holdup_volume):
+    """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
     EPSILON = .0002 # used in elemental difference calculations to prevent diminishing returns on flush cycles
     concentrations = previous_concentration # dictionary, passed from elemental factor function
     # check for elements above threshold
@@ -62,6 +39,18 @@ def get_num_flushes(previous_concentration, concentration_thresholds, blend_volu
             break
 
     return flush_count
+
+def _generate_family_group_factor(prev_family_group, next_family_group):
+    prev_index = family_group_indices[prev_family_group]
+    next_index = family_group_indices[next_family_group]
+    print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
+    print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
+    family_group_factor = family_group_matrix[prev_index][next_index]
+
+    family_group_factor += 1
+
+    print("Family group factor: "+str(family_group_factor))
+    return family_group_factor
 
 def _generate_elemental_factor(prev_product, next_product):
     if len(prev_product.elemental_values) > len(next_product.elemental_values):
