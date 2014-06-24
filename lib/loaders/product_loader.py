@@ -3,6 +3,10 @@ import xlrd
 from . import csv_loader
 from ..entities import product
 
+#def process_row(row):
+    #for cell in row:
+        #if cell.value ==
+
 def load_elemental_info(elemental_filepath):
     global elemental_info 
     elemental_info = csv_loader.load_csv_info(elemental_filepath)
@@ -44,6 +48,8 @@ def build_products(filepath):
         VISC_100_HIGH_COL = 5
         curr_row = 1
         while curr_row < num_rows:
+            # eliminate N/A values
+#            process_row(row)
             curr_row += 1 # we can skip the header rows
             code = int(worksheet.cell_value(curr_row, CODE_COL))
             name = worksheet.cell_value(curr_row, NAME_COL)

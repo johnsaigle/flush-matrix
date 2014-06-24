@@ -22,6 +22,9 @@ except ImportError:
     from lib.loaders import product_loader
     from lib.entities import product
 
+def ln_partial(viscosity_value, percentage_in_blend):
+    return (percentage_in_blend * math.log(viscosity_value)) / math.log(1000*viscosity_value)
+
 def _generate_family_group_factor(prev_family_group, next_family_group):
     prev_index = family_group_indices[prev_family_group]
     next_index = family_group_indices[next_family_group]
@@ -34,6 +37,32 @@ def _generate_family_group_factor(prev_family_group, next_family_group):
     print("Family group factor: "+str(family_group_factor))
     return family_group_factor
 
+def get_num_flushes(previous_concentration, concentration_thresholds, blend_volume, holdup_volume):
+    EPSILON = .0002 # used in elemental difference calculations to prevent diminishing returns on flush cycles
+    concentrations = previous_concentration # dictionary, passed from elemental factor function
+    # check for elements above threshold
+    flush_count = 0
+    elements_above_threshold = []
+    while True:
+        num_elements_to_test = 0
+        for element in concentrations:
+            # increment the number of flushes if one element is above threshold
+            if concentrations[element] > concentration_thresholds[element] and abs(concentrations[element] - concentration_thresholds[element]) > EPSILON:
+                elements_above_threshold.append(element)
+                num_elements_to_test += 1
+    
+        if num_elements_to_test > 0:
+            flush_count += 1
+            # calculate new concentrations based on a simulated flush
+            for element in elements_above_threshold:
+                print(element + " "+str(concentrations[element]))
+                concentrations[element] = (holdup_volume * concentrations[element] + blend_volume * concentration_thresholds[element]) / (blend_volume + holdup_volume)
+            elements_above_threshold = []
+        else:
+            break
+
+    return flush_count
+
 def _generate_elemental_factor(prev_product, next_product):
     if len(prev_product.elemental_values) > len(next_product.elemental_values):
         smaller_dictionary = next_product.elemental_values
@@ -43,48 +72,57 @@ def _generate_elemental_factor(prev_product, next_product):
         larger_dictionary = next_product.elemental_values
 
     # find common elements by iterating over the smaller list
-    shared_elements = []
+    initial_concentration = {}
+    concentration_threshold = {}
     for element in smaller_dictionary:
         if element in larger_dictionary:
-            shared_elements.append(element)
+            if smaller_dictionary[element] > 0:
+                initial_concentration[element] = prev_product.elemental_values[element]
+                concentration_threshold[element] = next_product.elemental_values[element]
 
-    # return 1 if there are no shared elements
-    if shared_elements == []:
-        print("No shared elements.")
-        return 1
-    # find the greatest difference between shared elements
-    elemental_differences = []
-    for element in shared_elements:
-        prev_value = float(prev_product.elemental_values[element])
-        next_value = float(next_product.elemental_values[element])
-        max_value = max([prev_value, next_value])
-        min_value = min([prev_value, next_value])
-        elemental_differences.append((max_value - min_value)/min_value)
-    elemental_factor = int(max(elemental_differences))
+    # determine number of flushes 
+    flushes = get_num_flushes(initial_concentration, concentration_threshold, 200, 40)
+    print("Num flushes: "+str(flushes))
 
-    if elemental_factor == 0:
-        # all elemental values are the same. we will use a multiplier of 1
-        elemental_factor = 1
-
-    print("Elemental factor: " + str(elemental_factor))
-    return elemental_factor
+    return flushes
 
 def _generate_viscosity_factor(prev_product, next_product):
+    LINEARIZED_VISCOSITY_CONSTANT = 6.907755 # determined by an engineer at some point...
     # compare viscosities -- we use the average value at 100 becuase it's more common
-    typical_viscosity_index = 2 # according to Product data structure
-    prev_viscosity_avg = prev_product.viscosity_specs_at_100[typical_viscosity_index] # this variable is a tuple; the '2th' value is 'Typ' -- the typical (or average) cSt measurement for the product
-    next_viscosity_avg = next_product.viscosity_specs_at_100[typical_viscosity_index] 
-    # if there is no proper value for either average, use specs at 40 instead
-    if prev_viscosity_avg == None or prev_viscosity_avg == '' or next_viscosity_avg == None or next_viscosity_avg == '':
-        prev_viscosity_avg = prev_product.viscosity_specs_at_40[typical_viscosity_index] 
-        next_viscosity_avg = next_product.viscosity_specs_at_40[typical_viscosity_index] 
-    difference = abs(float(prev_viscosity_avg) - float(next_viscosity_avg)) # absolute difference between values
+
+    prev_viscosity_avg = prev_product.calculate_average_viscosity_at_100()
+    next_viscosity_avg = next_product.calculate_average_viscosity_at_100()
+    
+    # use average at 40 degrees if the value at 100 is invalid
+    if prev_viscosity_avg == 0 or next_viscosity_avg == 0:
+        prev_viscosity_avg = prev_product.calculate_average_viscosity_at_40()
+        next_viscosity_avg = next_product.calculate_average_viscosity_at_40()
+
+################## dummies for test #####################
+    prev_viscosity_avg = 68
+    next_viscosity_avg = 33
+    prev_percent_in_blend = 0.87000
+    next_percent_in_blend = 0.13000
+
+    if prev_percent_in_blend + next_percent_in_blend > 1.0:
+        print("Error: the sum of viscosity 'percentage in blend' values are greater than 100%.")
+        return # return a proper value later, or error check in calling function
+    
+    # calculate ln partials -- avg * ln(% in blend) / ln(1000*% in blend) 
+    prev_partial = ln_partial(prev_viscosity_avg, prev_percent_in_blend)
+    next_partial = ln_partial(next_viscosity_avg, next_percent_in_blend)
+
+    partial_sum = prev_partial + next_partial
+    intermediate_product = (partial_sum * LINEARIZED_VISCOSITY_CONSTANT) /(1 - partial_sum)
+    final_viscosity = math.exp(intermediate_product)
+
     # normalize the difference based on some value decided by the user
-    normalization_interval = 3.0 # magic number until I create the config file
-    adjusted_difference_factor = 0.1 * int(difference / normalization_interval) # cast to integer here because theremainder is not important to us
-    viscosity_factor = 1.0 + adjusted_difference_factor # 1.0 is the default factor 
-    print("Viscosity factor: "+str(viscosity_factor))
-    return viscosity_factor
+    # normalization_interval = 3.0 # magic number until I create the config file
+    # adjusted_difference_factor = 0.1 * int(difference / normalization_interval) # cast to integer here because theremainder is not important to us
+    # viscosity_factor = 1.0 + adjusted_difference_factor # 1.0 is the default factor 
+    # print("Viscosity factor: "+str(viscosity_factor))
+    print("Final viscosity = "+str(final_viscosity))
+    return final_viscosity
 
 def generate_flush_factor(prev_one, next_one):
     global products
@@ -100,27 +138,40 @@ def generate_flush_factor(prev_one, next_one):
         next_product = find_match(next_one)
     else:
         next_product = next_one
-
+    # dummy values for testing functions
+    e1dic = {
+            'Calcium' : 0.1,
+            'Magnesium' : 0.2,
+            'Sodium' : 0.01
+            }
+    e2dic = {
+            'Calcium' : 0.2,
+            'Magnesium' : 0.04,
+            'Sulphur' : 0.1,
+            'Copper' : 0.9
+            }
+    prev_product = product.Product('P1', '0', e1dic)
+    next_product = product.Product('P2', '1', e2dic)
     family_group_factor = 1
     viscosity_factor = 1
     elemental_factor = 1
     equipment_factor = 1 # may not need this in the end
     # determine family group factor
-    prev_family_group = prev_product.family_group.lower() 
-    next_family_group = next_product.family_group.lower()
-    family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
-    #determine elemental factor if products share a family group
+    #prev_family_group = prev_product.family_group.lower() 
+    #next_family_group = next_product.family_group.lower()
+    #family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
+    # determine elemental factor if products share a family group
     elemental_factor = _generate_elemental_factor(prev_product, next_product)
     # viscosity factor -- use averages and determine the difference
     viscosity_factor = _generate_viscosity_factor(prev_product, next_product)
     # demulse factor
-    if prev_product.demulse_test == True or next_product.demulse_test == False:
-        print("Demulse factor present.")
-    core_factor = family_group_factor + viscosity_factor
-    if core_factor < 3:
-        print("Sum of family group factor and viscosity factor is less than 3. Core factor set to 0.")
-        core_factor = 0
-    flush_factor = core_factor * elemental_factor 
+    #if prev_product.demulse_test == True or next_product.demulse_test == False:
+    #   print("Demulse factor present.")
+    #core_factor = family_group_factor + viscosity_factor
+    #if core_factor < 3:
+    #    print("Sum of family group factor and viscosity factor is less than 3. Core factor set to 0.")
+    #    core_factor = 0
+    flush_factor = max(viscosity_factor, elemental_factor) 
     return flush_factor
 
 def load_products(product_filepath, elemental_filepath):

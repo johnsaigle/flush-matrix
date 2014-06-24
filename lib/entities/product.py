@@ -8,4 +8,22 @@ class Product:
         self.viscosity_at_40 = Viscosity(viscosity_at_40_low, viscosity_at_40_high)
         self.viscosity_at_100 = Viscosity(viscosity_at_100_low, viscosity_at_100_high)
         self.family_group = '0' # will be pulled from excel later
+    
+    def calculate_average_viscosity_at_100(self):
+        # use 100. If 100 is None or '', use 40. If 40 is None or '', error
+        if self.viscosity_at_100.low == None or self.viscosity_at_100.low == '':
+            return 0
+        elif self.viscosity_at_100.high == None or self.viscosity_at_100.high == '':
+            return 0
+        else:
+            # assuming here that the values are valid
+            return (viscosity_at_100.high - viscosity_at_40.high)/2
 
+    def calculate_average_viscosity_at_40(self):
+        if self.viscosity_at_40.low == None or self.viscosity_at_40.low == '':
+            return 0
+        elif self.viscosity_at_40.high == None or self.viscosity_at_40.high == '':
+            return 0
+        else:
+            # assuming here that the values are valid
+            return (viscosity_at_40.high - viscosity_at_40.high)/2
