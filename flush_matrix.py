@@ -248,4 +248,3 @@ if __name__ == "__main__":
     print(prev_product.name, next_product.name)
     flush_factor = generate_flush_factor(prev_product, next_product)
     print("Overall flush factor: "+str(flush_factor))
-

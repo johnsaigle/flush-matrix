@@ -1,6 +1,5 @@
 import os
 import xlrd
-from . import csv_loader
 from ..entities import product
 
 #def process_row(row):

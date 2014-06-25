@@ -17,4 +17,3 @@ def build_equipment(filepath):
         e = equipment.Equipment(name, area, residual_volume, cycle_size, flush_material, initial_fill)
         equip_list.append(e)
     return equip_list
-    

@@ -29,7 +29,6 @@ class AppWindow(QtGui.QMainWindow, form_class):
         # bind buttons to event handlers
         self.button_generate_flush.clicked.connect(self.button_generate_clicked)
 
-
     def button_generate_clicked(self):
         # ensure integrity of user values
         prev_value = self.linetext_prev.text().strip()
@@ -80,6 +79,7 @@ class AppWindow(QtGui.QMainWindow, form_class):
             return
         # if everything is kosher so far, launch the calculating script
         try:
+            flush_matrix.init_data() # try loading here
             flush_factor = flush_matrix.generate_flush_factor(prev_value, next_value)
         except Exception as e:
             template = "An exception of type {0} occured. Arguments:\n{1!r}"
@@ -89,10 +89,8 @@ class AppWindow(QtGui.QMainWindow, form_class):
         # display value
         self.flush_volume.setText(str(flush_factor))
 
-
 # initialize and show window
 app = QtGui.QApplication(sys.argv)
 window = AppWindow(None)
 window.show()
 app.exec_()
-

@@ -6,5 +6,3 @@ class Equipment:
         self.cycle_size = int(cycle_size) # typical flush size to clean a container. This is a default value to be multipled as determined by the flush_matrix script
         self.flush_material = flush_material # the product used in the flushing
         self.initial_fill_size = int(initial_fill_size)
-
-    
