@@ -3,11 +3,17 @@ import math
 import sys
 import os
 import inspect
+import configparser
 from flushmatrix.lib.loaders import product_loader
 from flushmatrix.lib.loaders import matrix_loader
-from flushmatrix.lib.loaders import equipment_laoder
+from flushmatrix.lib.loaders import equipment_loader
 from flushmatrix.lib.entities import product
 from flushmatrix.lib.entities import equipment
+
+# load configuration settings
+global config
+config = configparser.ConfigParser()
+config.read('settings.ini')
 
 def ln_partial(viscosity_value, percentage_in_blend):
     """Returns the partial ln of a product given its viscosity and concentration in a blend."""
@@ -15,7 +21,8 @@ def ln_partial(viscosity_value, percentage_in_blend):
 
 def get_num_flushes(previous_concentration, concentration_thresholds, blend_volume, holdup_volume):
     """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
-    EPSILON = .0002 # used in elemental difference calculations to prevent diminishing returns on flush cycles
+    global config
+    EPSILON = float(config['DEFAULT']['ConcentrationEpsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
     concentrations = previous_concentration # dictionary, passed from elemental factor function
     # check for elements above threshold
     flush_count = 0
@@ -76,7 +83,8 @@ def _generate_elemental_factor(prev_product, next_product):
     return flushes
 
 def _generate_viscosity_factor(prev_product, next_product):
-    LINEARIZED_VISCOSITY_CONSTANT = 6.907755 # determined by an engineer at some point...
+    global config
+    LINEARIZED_VISCOSITY_CONSTANT = float(config['DEFAULT']['ViscosityConstant'])
     # compare viscosities -- we use the average value at 100 becuase it's more common
 
     prev_viscosity_avg = prev_product.calculate_average_viscosity_at_100()
@@ -105,11 +113,6 @@ def _generate_viscosity_factor(prev_product, next_product):
     intermediate_product = (partial_sum * LINEARIZED_VISCOSITY_CONSTANT) /(1 - partial_sum)
     final_viscosity = math.exp(intermediate_product)
 
-    # normalize the difference based on some value decided by the user
-    # normalization_interval = 3.0 # magic number until I create the config file
-    # adjusted_difference_factor = 0.1 * int(difference / normalization_interval) # cast to integer here because theremainder is not important to us
-    # viscosity_factor = 1.0 + adjusted_difference_factor # 1.0 is the default factor 
-    # print("Viscosity factor: "+str(viscosity_factor))
     print("Final viscosity = "+str(final_viscosity))
     return final_viscosity
 
@@ -117,7 +120,6 @@ def generate_flush_factor(prev_one, next_one):
     global products
     if products is None:
         init_data()
-    
     # a bit of a duct tape fix between ui and text-based modes... should refactor later
     if type(prev_one) is int:
         prev_product = find_match(prev_one)
@@ -149,7 +151,7 @@ def generate_flush_factor(prev_one, next_one):
     #prev_family_group = prev_product.family_group.lower() 
     #next_family_group = next_product.family_group.lower()
     #family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
-    # determine elemental factor if products share a family group
+    # determine number of cyles needed to yield appropriate elemental concentrations
     elemental_factor = _generate_elemental_factor(prev_product, next_product)
     # viscosity factor -- use averages and determine the difference
     viscosity_factor = _generate_viscosity_factor(prev_product, next_product)
@@ -158,7 +160,6 @@ def generate_flush_factor(prev_one, next_one):
     #   print("Demulse factor present.")
     #core_factor = family_group_factor + viscosity_factor
     #if core_factor < 3:
-    #    print("Sum of family group factor and viscosity factor is less than 3. Core factor set to 0.")
     #    core_factor = 0
     flush_factor = max(viscosity_factor, elemental_factor) 
     return flush_factor
