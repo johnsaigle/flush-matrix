@@ -1,7 +1,7 @@
 # GUI component of the flush tool
 import sys
-from PyQt4 import QtCore, QtGui, uic
 import flush_matrix
+from PyQt4 import QtCore, QtGui, uic
 
 # load backend before creating front end
 flush_matrix.init_data()
