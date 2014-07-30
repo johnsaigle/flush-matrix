@@ -7,3 +7,4 @@
 *.pyc
 .gitignore
 build/
+*.ini
