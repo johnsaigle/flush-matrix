@@ -1,5 +1,6 @@
 import os
 import xlrd
+import configparser
 from ..entities import product
 
 def process_cell(cell):
@@ -17,23 +18,23 @@ def process_cell(cell):
         return xlrd.error_text_from_code[cell.value]
 
 def process_row(row_as_array):
-    print(row_as_array[0])
-    print('\n')
-    """Converts a row into the appropriate text."""
+    """Convert a row of cells from xlrd into values that are more intuitive to work with ie not xlrd 'objects'."""
     for cell in row_as_array:
-        # print(cell.value)
         cell.value = process_cell(cell)
     return row_as_array
 
 def build_products(filepath):
     """Reads data from excel spreadsheets to build data representations of products."""
     """All attributes of product objects are stored as strings so the user is responsible for casting types."""
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
     product_list = []
+
     try:
+        print("Loading products from spreadsheet at {0}...".format(filepath))
         workbook = xlrd.open_workbook(filepath)
-        print("Loading products from spreadsheet...")
-        
-        worksheet = workbook.sheet_by_name('FlushData')
+        product_worksheet_name = str(config['File Locations']['Title of Product Worksheet'])
+        worksheet = workbook.sheet_by_name(product_worksheet_name)
         num_rows = worksheet.nrows - 1
         num_cells = worksheet.ncols - 1
 

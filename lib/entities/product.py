@@ -7,8 +7,8 @@ class Product:
         Viscosity = namedtuple('Viscosity', 'low high')
         self.viscosity_at_40 = Viscosity(viscosity_at_40_low, viscosity_at_40_high)
         self.viscosity_at_100 = Viscosity(viscosity_at_100_low, viscosity_at_100_high)
-        self.demulse = demulse 
-        self.dyed = dyed 
+        self.demulse_test = demulse # whether a product requires a demulse test
+        self.dyed = dyed # whether a product is dyed or not
         self.family_group = '0' # will be pulled from excel later
 
         # sanitize elemental dictionary to remove bogus values (such as 'NA')
@@ -20,6 +20,7 @@ class Product:
             del elemental_values[e]     # as they are being iterated
     
     def calculate_average_viscosity_at_100(self):
+        """Return the average between the low and high points of the viscosity at 100 values, if it exists."""
         # use 100. If 100 is None or '', use 40. If 40 is None or '', error
         if self.viscosity_at_100.low == None or self.viscosity_at_100.low == '':
             return 0
@@ -36,6 +37,7 @@ class Product:
                 return 0
 
     def calculate_average_viscosity_at_40(self):
+        """Return the average between the low and high points of the viscosity at 40 values, if it exists."""
         if self.viscosity_at_40.low == None or self.viscosity_at_40.low == '':
             return 0
         elif self.viscosity_at_40.high == None or self.viscosity_at_40.high == '':

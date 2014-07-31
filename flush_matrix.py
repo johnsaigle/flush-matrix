@@ -10,56 +10,117 @@ from flushmatrix.lib.loaders import equipment_loader
 from flushmatrix.lib.entities import product
 from flushmatrix.lib.entities import equipment
 
-# load configuration settings
-global config
-config = configparser.ConfigParser()
-config.read('settings.ini')
+
+### LOADING FUNCTIONS ###
+def load_products(product_filepath):
+    """Make a call to product loader to load product information from an excel file."""
+    return (product_loader.build_products(product_filepath))
+
+def load_matrix(filepath):
+    """Make a call to matrix_loader to load family goup matrix information from a csv file"""
+    return (matrix_loader.build_matrix(filepath))
+def load_equipment(filepath):
+    """Make a call to equipment_loader to load equipment information from an excel file into memory."""
+    return (equipment_loader.build_equipment(filepath))
+### END LOADING FUCNTIONS ###
+
+### Data Validation Functions ### 
+def find_match(product_code):
+    global products
+    if products is None or len(products) < 1:
+        print("No products loaded. Returning...")
+        return None
+    message = "Looking for match for product code "+str(product_code)
+    print(message)
+    product = None
+    for p in products:
+        if p.material_code == product_code:
+            product = p
+            return product
+
+    # if no product found
+    if product == None:
+       msg = "Material code '{0}' does not match any product."
+       errormsg = msg.format(product_code)
+       print(errormsg)
+       return None
+
+def generate_file_path(filename):
+    """Returns a valid filepath, if file 'filename' exists."""
+    if getattr(sys, 'frozen', False):
+    # The application is frozen (cx_freeze)
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # not frozen
+        datadir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '\\data\\'
+    return os.path.join(datadir, filename)
+
+def init_data():
+    """Load all external values into the program memory."""
+    """These values can be customized in the file 'settings.ini '"""
+    global config
+    global products
+    global equipment
+
+    print("Initializing data...")
+
+    # load configuration information
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+    try:
+        product_file_name = str(config['File Locations']['Product File Name'])
+        equipment_file_name = str(config['File Locations']['Equipment File Name'])
+    except KeyError as e:
+        print('Key Error occurred when reading settings file - could not find key "%s"' % str(e))
+        quit()
+    except Exception as e:
+        print("An unspecified exception occurred -- " +str(e))
+
+    products = load_products(generate_file_path(product_file_name))
+    equipment = load_equipment(generate_file_path(equipment_file_name))
+### END Data Validation Functions ####
 
 def ln_partial(viscosity_value, percentage_in_blend):
     """Returns the partial ln of a product given its viscosity and concentration in a blend."""
     return (percentage_in_blend * math.log(viscosity_value)) / math.log(1000*viscosity_value)
 
-def get_num_flushes(previous_concentration, concentration_thresholds, blend_volume, holdup_volume):
+def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_thresholds, initial_fill_size, residual_volume):
     """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
+    # initialize variables
     global config
-    EPSILON = float(config['DEFAULT']['Concentration Epsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
-    concentrations = previous_concentration # dictionary, passed from elemental factor function
+    EPSILON = float(config['Algebraic Values']['Concentration Epsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
+    current_concentrations = initial_concentrations_dictionary # dictionary, passed from elemental factor function
+
     # check for elements above threshold
     flush_count = 0
     elements_above_threshold = []
+
+    # run values through the loop until the formula returns a value less than the concentration threshold for each element
     while True:
         num_elements_to_test = 0
-        for element in concentrations:
-            # increment the number of flushes if one element is above threshold
-            if concentrations[element] > concentration_thresholds[element] and abs(concentrations[element] - concentration_thresholds[element]) > EPSILON:
+        for element in current_concentrations:
+            # check for unacceptable elemental levels
+            if current_concentrations[element] > concentration_thresholds[element] and abs(current_concentrations[element] - concentration_thresholds[element]) > EPSILON:
                 elements_above_threshold.append(element)
-                num_elements_to_test += 1
     
-        if num_elements_to_test > 0:
+        if len(elements_above_threshold) > 0:
+            # increment the number of flushes if one element is above threshold
+            print("Testing "+int(num_elements_to_test) +" elements.")
             flush_count += 1
             # calculate new concentrations based on a simulated flush
             for element in elements_above_threshold:
                 print(element + " "+str(concentrations[element]))
-                concentrations[element] = (holdup_volume * concentrations[element] + blend_volume * concentration_thresholds[element]) / (blend_volume + holdup_volume)
+                # use diluation formula to adjust the values for the elementla conccentrations in the blend
+                current_concentrations[element] = (residual_volume * current_concentrations[element] + blend_volume * concentration_thresholds[element]) / (blend_volume + residual_volume)
+
+            # clear list of elements above threshold so that it can be cleanly populated in the next loop
             elements_above_threshold = []
         else:
             break
 
     return flush_count
 
-def _generate_family_group_factor(prev_family_group, next_family_group):
-    prev_index = family_group_indices[prev_family_group]
-    next_index = family_group_indices[next_family_group]
-    print ("Prev: {0}. Index = {1}".format(prev_family_group, prev_index))
-    print ("Next: {0}. Index = {1}".format(next_family_group, next_index))
-    family_group_factor = family_group_matrix[prev_index][next_index]
-
-    family_group_factor += 1
-
-    print("Family group factor: "+str(family_group_factor))
-    return family_group_factor
-
-def _generate_elemental_factor(prev_product, next_product):
+def _generate_elemental_factor(prev_product, next_product, destination, source = None):
     """Compares every element a product has in common and 
     determines the number of flushes necessary to bring the difference between 
     these elemental values to an acceptable level."""
@@ -70,12 +131,11 @@ def _generate_elemental_factor(prev_product, next_product):
         smaller_dictionary = prev_product.elemental_values
         larger_dictionary = next_product.elemental_values
 
-    # find common elements by iterating over the smaller list
+    # find common elements by iterating over the smaller dictionary
     initial_concentration = {}
     concentration_threshold = {}
     for element in smaller_dictionary:
         if element in larger_dictionary:
-            # make sure there are no errors
             try:
                 if int(smaller_dictionary[element]) > 0 and int(larger_dictionary[element]) > 0:
                     initial_concentration[element] = int(prev_product.elemental_values[element])
@@ -86,16 +146,25 @@ def _generate_elemental_factor(prev_product, next_product):
                 print("Next product: "+next_product.elemental_values[element])
                 continue
 
+    if len(initial_concentration) > 0:
+        print("Products have " +str(len(initial_concentration)) +" elements in common:")
+        for key in initial_concentration:
+            print(str(key))
+    else:
+        print("Products have no elements in common.")
+        return 0
     # determine number of flushes 
-    flushes = get_num_flushes(initial_concentration, concentration_threshold, 200, 40)
-    print("Num flushes: "+str(flushes))
-    return flushes
+    if destination.area == 'Packaging':
+        volume = destination.initial_fill_size
+    num_flushes = get_num_elemental_flushes(initial_concentration, concentration_threshold, volume, destination.residual_volume)
+    print("Number of flushes needed to satisfy elemental factor: " +int(num_flushes))
+    return num_flushes
 
 def _generate_viscosity_factor(prev_product, next_product):
     """Determines the flush volume necessary to bring about 
     acceptable levels of viscosity for the next product."""
     global config
-    LINEARIZED_VISCOSITY_CONSTANT = float(config['DEFAULT']['Viscosity Constant'])
+    LINEARIZED_VISCOSITY_CONSTANT = float(config['Algebraic Values']['Viscosity Constant'])
     # compare viscosities -- we use the average value at 100 becuase it's more common
 
     prev_viscosity_avg = prev_product.calculate_average_viscosity_at_100()
@@ -120,95 +189,46 @@ def _generate_viscosity_factor(prev_product, next_product):
 
     next_partial = ln_partial(next_viscosity_avg, next_percent_in_blend)
 
-    partial_sum = prev_partial + next_partial
-    intermediate_product = (partial_sum * LINEARIZED_VISCOSITY_CONSTANT) /(1 - partial_sum)
+    sum_of_partials = prev_partial + next_partial # useful for readability
+    intermediate_product = (sum_of_partials * LINEARIZED_VISCOSITY_CONSTANT) /(1 - sum_of_partials)
     final_viscosity = math.exp(intermediate_product)
 
     print("Final viscosity = "+str(final_viscosity))
     return final_viscosity
 
-def generate_flush_factor(prev_product, next_product):
+def generate_flush_factor(prev_product, next_product, destination, source= None):
     global products
-
-    # initialize products from their material code
-
-    family_group_factor = 1
-    viscosity_factor = 1
-    elemental_factor = 1
-    equipment_factor = 1 # may not need this in the end
-
-    # determine family group factor
-    #prev_family_group = prev_product.family_group.lower() 
-    #next_family_group = next_product.family_group.lower()
-    #family_group_factor = _generate_family_group_factor(prev_family_group, next_family_group)
+    global config
     # determine number of cyles needed to yield appropriate elemental concentrations
-    elemental_factor = _generate_elemental_factor(prev_product, next_product)
+    elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination)
     # viscosity factor -- use averages and determine the difference
-    viscosity_factor = _generate_viscosity_factor(prev_product, next_product)
+    viscosity_cycles = _generate_viscosity_factor(prev_product, next_product)
 
     # demulse factor
-    if prev_product.demulse == "DM" or next_product.demulse_test == "DM":
-       print("Demulse factor present.")
+    demulse_cycles = 0
+    # Four cases in which the demulse constant is needed:
+    # demulse --> emulse
+    # emluse --> demulse
+    # non-demulse --> emulse
+    # non-demulse --> demulse
+    if (prev_product.demulse_test == "NA" and not next_product.demulse_test == "NA") or (not prev_product.demulse_test == "NA" and not next_product.demulse_test== "NA"):
+       print("Demulse factor present. Using demulse constant for number of cycles needed to clear demulse contaminants.")
+       demulse_cycles = int(config['Algebraic Values']['Demulse Constant'])
     else:
        print("No demulse factor present.")
 
     # dye factor
-    if prev_product.dyed == "YES" or next_product.dyed == "YES":
-       print("Dye factor present.")
+    dye_cycles = 0
+    if prev_product.dyed == "YES" and next_product.dyed == "NO":
+       print("Dye factor present. Using dye constant for number of cycles needed to clear dye contaminants.")
+       dye_cycles = int(config['Algebraic Values']['Dye Constant'])
     else:
        print("No dye factor present.")
 
-    flush_factor = max(viscosity_factor, elemental_factor) 
-    print("Final flush factor = max (viscosity factor, elemental factor) = " +str(flush_factor))
-    return flush_factor
+    flush_cycles = max(elemental_cycles, viscosity_cycles, demulse_cycles, dye_cycles) 
+    print("Final flush factor = max (viscosity cycles, elemental cycles, demulse_cycles, dye cycles) = " +str(flush_cycles))
+    return flush_cycles
 
-def load_products(product_filepath):
-    return (product_loader.build_products(product_filepath))
-
-def load_matrix(filepath):
-    return (matrix_loader.build_matrix(filepath))
-
-def find_match(product_code):
-    global products
-    if products is None or len(products) < 1:
-        print("No products loaded. Returning...")
-        return None
-    message = "Looking for match for product code "+str(product_code)
-    print(message)
-    product = None
-    for p in products:
-        if p.material_code == product_code:
-            product = p
-            return product
-
-    # if no product found
-    if product == None:
-       msg = "Material code '{0}' does not match any product."
-       errormsg = msg.format(product_code)
-       print(errormsg)
-       return None
-
-def find_data_file(filename):
-    if getattr(sys, 'frozen', False):
-    # THe application is frozen (cx_freeze)
-        datadir = os.path.dirname(sys.executable)
-    else:
-        # not frozen
-        datadir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '\\data\\'
-    return os.path.join(datadir, filename)
-
-def init_data():
-    global products
-    global config
-    global family_group_indices
-    global family_group_matrix
-    print("Initializing data...")
-    product_file_name = str(config['DEFAULT']['Product File Name'])
-    family_group_matrix_file_name = str(config['DEFAULT']['Family Matrix File Name'])
-    products = load_products(find_data_file(product_file_name))
-    matrix_info = load_matrix(find_data_file(family_group_matrix_file_name)) #change this to excel later, not csv file anymore
-    family_group_indices = matrix_info[0]
-    family_group_matrix = matrix_info[1]
 
 # launch a script component if the GUI isn't used
 if __name__ == "__main__":
@@ -219,10 +239,11 @@ if __name__ == "__main__":
     if products == None:
         print("Error loading product information. Exiting.")
         quit()
-    # allow user to enter in product information
-    for p in products:
-        print(str(p.material_code) + " -- " + str(p.name))
+    # print a list of products
+    #for p in products:
+    #    print(str(p.material_code) + " -- " + str(p.name))
     while True:
+    # allow user to enter in product information
         try:
             prev_product = None
             selection = input("Enter product code for previous product: ")
@@ -253,5 +274,5 @@ if __name__ == "__main__":
                 print("Code does not correspond to any product.")
             continue
     print(prev_product.name, next_product.name)
-    flush_factor = generate_flush_factor(prev_product, next_product)
+    # flush_factor = generate_flush_factor(prev_product, next_product)
     print("Overall flush factor: "+str(flush_factor))
