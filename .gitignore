@@ -3,6 +3,8 @@
 *.xls
 *.pyc
 *.swp
+*.swo
+*.dll
 *.*~
 *.pyc
 .gitignore
