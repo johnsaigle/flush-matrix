@@ -12,7 +12,7 @@ def process_cell(cell):
         return cell.value
     if ttype == xlrd.XL_CELL_NUMBER or ttype == xlrd.XL_CELL_DATE or ttype == xlrd.XL_CELL_BOOLEAN:
         # convert these types to strings
-        return int(cell.value)
+        return float(cell.value)
     if cell.ctype == xlrd.XL_CELL_ERROR:
         # do not process - instead, return the correct error message
         return xlrd.error_text_from_code[cell.value]
