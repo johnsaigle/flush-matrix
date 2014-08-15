@@ -136,11 +136,11 @@ class AppWindow(QtGui.QMainWindow, form_class):
             return
 
         # if everything is kosher so far, launch the calculating script
-        if source is None:
+        if destination.area == 'Packaging':
             num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination)
         else:
             try:
-                volume = int(self.linetext_volume.text())
+                volume = float(self.linetext_volume.text())
                 if volume <= 0:
                     QtGui.QMessageBox.critical(self,
                         "Invalid Input",
