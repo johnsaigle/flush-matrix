@@ -67,7 +67,6 @@ class AppWindow(QtGui.QMainWindow, form_class):
         next_product_code = self.linetext_next.text().strip()
         equipment_destination_name = self.combo_destination.currentText()
         destination = None
-        source = None
         volume = 0
         for e in flush_tool.equipment:
             if e.name == equipment_destination_name:
@@ -152,12 +151,19 @@ class AppWindow(QtGui.QMainWindow, form_class):
                     "Volume must be a number.")
                 return
 
-            num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination, source, volume)
+            num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination, volume)
 
         if num_flush_cycles is None:
             print("Fatal error: unable to calculate flush factor. (are the values correct?)")
-        elif num_flush_cycles <= 0:
-            print("Error: flush factor is 0.")
+        elif num_flush_cycles < 0:
+            print("Error: flush factor is less than 0.")
+        elif num_flush_cycles == 0:
+            self.label_num_cycles.setValue(int(num_flush_cycles))
+            self.label_cycle_volume.setText("0")
+            self.label_material.setText("--")
+            QtGui.QMessageBox.critical(self,
+                  "Similar Products",
+                  "The flush result is equal to zero. No flush necessary!")
         else:
             self.label_num_cycles.setValue(int(num_flush_cycles))
             self.label_cycle_volume.setText(str(destination.cycle_size))

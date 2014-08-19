@@ -231,11 +231,11 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
 
             num_cycles += 1
             if volume is None:
-                total_volume = destination.initial_fill_size + num_cycles * destination.cycle_size
+                total_volume = destination.initial_fill_size + residual_volume
             else:
-                total_volume = volume + num_cycles * destination.cycle_size
+                total_volume = volume + residual_volume
                    
-            retention_ratio = float(destination.cycle_size / total_volume)
+            retention_ratio = float(residual_volume / total_volume)
             retention_ratio_complement = float(1- retention_ratio)
 
             # calculate ln partials -- % in blend * ln(viscosity) / ln(1000*viscosity) 
@@ -263,7 +263,7 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
     print("Number of cyles needed for viscosity factor: " + str(num_cycles))
     return num_cycles
 
-def generate_flush_factor(prev_product, next_product, destination, source= None, volume = None):
+def generate_flush_factor(prev_product, next_product, destination, volume = None):
     global products
     global config
     # determine number of cyles needed to yield appropriate elemental concentrations
@@ -281,7 +281,7 @@ def generate_flush_factor(prev_product, next_product, destination, source= None,
     # emluse --> demulse
     # non-demulse --> emulse
     # non-demulse --> demulse
-    if (prev_product.demulse_test == "NA" and not next_product.demulse_test == "NA") or (not prev_product.demulse_test == "NA" and not next_product.demulse_test== "NA"):
+    if (prev_product.demulse_test == "" and not next_product.demulse_test == "") or (not prev_product.demulse_test == "" and not next_product.demulse_test== ""):
        print("\nDemulse factor present. Using demulse constant for number of cycles needed to clear demulse contaminants.")
        demulse_cycles = int(config['Algebraic Values']['Demulse Constant'])
     else:
