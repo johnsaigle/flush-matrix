@@ -46,15 +46,12 @@ class AppWindow(QtGui.QMainWindow, form_class):
                 department = e.area
                 break
         if department == 'Blending':
-            self.combo_source.setEnabled(True)
             self.linetext_volume.setEnabled(True)
             self.label_volume.setText('Blend Size (L)')
         elif department == 'Bulk Receiving':
-            self.combo_source.setEnabled(True)
             self.linetext_volume.setEnabled(True)
             self.label_volume.setText('Receipt Size (L)')
         else:
-            self.combo_source.setEnabled(False)
             self.linetext_volume.setEnabled(False)
             self.label_volume.setText('Volume (L)')
 
