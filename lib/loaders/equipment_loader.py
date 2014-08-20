@@ -1,5 +1,6 @@
 import xlrd
 import configparser
+import logging
 from ..entities import equipment
 
 def build_equipment(filepath):
@@ -14,7 +15,7 @@ def build_equipment(filepath):
     num_cells = worksheet.ncols - 1
     curr_row = 0 # header row
 
-    print("Loading equipment from spreadsheet at {0}...".format(filepath))
+    logging.info("Loading equipment from spreadsheet at {0}...".format(filepath))
 
     while curr_row < num_rows:
         curr_row += 1
@@ -31,5 +32,5 @@ def build_equipment(filepath):
         e = equipment.Equipment(name, area, residual_volume, cycle_size, flush_material, initial_fill)
         equip_list.append(e)
 
-    print("Pieces of equipment loaded: " + str(len(equip_list)))
+    logging.info("Pieces of equipment loaded: " + str(len(equip_list)))
     return equip_list

@@ -41,7 +41,6 @@ class AppWindow(QtGui.QMainWindow, form_class):
 
     def grab_destination_selection(self):
         selection = self.combo_destination.currentText()
-        print("Destination selection: " + str(selection))
         for e in flush_tool.equipment:
             if e.name == selection:
                 department = e.area
@@ -154,9 +153,9 @@ class AppWindow(QtGui.QMainWindow, form_class):
             num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination, volume)
 
         if num_flush_cycles is None:
-            print("Fatal error: unable to calculate flush factor. (are the values correct?)")
+            logging.critical("Fatal error: unable to calculate flush factor.")
         elif num_flush_cycles < 0:
-            print("Error: flush factor is less than 0.")
+            logging.critical("Flush factor is less than 0.")
         elif num_flush_cycles == 0:
             self.label_num_cycles.setValue(int(num_flush_cycles))
             self.label_cycle_volume.setText("0")

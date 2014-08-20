@@ -1,6 +1,7 @@
 import os
 import xlrd
 import configparser
+import logging
 from ..entities import product
 
 def process_cell(cell):
@@ -31,7 +32,7 @@ def build_products(filepath):
     product_list = []
 
     try:
-        print("Loading products from spreadsheet at {0}...".format(filepath))
+        logging.info("Loading products from spreadsheet at {0}...".format(filepath))
         workbook = xlrd.open_workbook(filepath)
         product_worksheet_name = str(config['File Locations']['Title of Product Worksheet'])
         worksheet = workbook.sheet_by_name(product_worksheet_name)
@@ -86,9 +87,9 @@ def build_products(filepath):
             p = product.Product(code, name, elemental_values, demulse, dyed, visc_40_low, visc_40_high, visc_100_low,visc_100_high)
             #add the new product to the list of products to return
             product_list.append(p)
-        print("Products loaded: " +str(len(product_list)))
+        logging.info("Products loaded: " +str(len(product_list)))
         return product_list
 
     except ValueError as e:
-        print("Value error occurred in processing row #"+str(row_index))
+        logging.error("Value error occurred in processing row #"+str(row_index), exc_info=True)
         pass

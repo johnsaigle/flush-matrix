@@ -4,6 +4,8 @@ import sys
 import os
 import inspect
 import configparser
+import logging
+import datetime
 from flushmatrix.lib.loaders import product_loader
 from flushmatrix.lib.loaders import matrix_loader
 from flushmatrix.lib.loaders import equipment_loader
@@ -27,23 +29,23 @@ def load_equipment(filepath):
 ### Data Validation Functions ### 
 def find_match(product_code):
     global products
+    # check if products loaded correctly
     if products is None or len(products) < 1:
-        print("No products loaded. Returning...")
+        logging.error("No products loaded. Returning...")
         return None
-    message = "Looking for match for product code "+str(product_code)+"."
-    print(message)
+
     product = None
     for p in products:
         if p.material_code == product_code:
             product = p
-            print("Match found: "+str(product_code)+".")
+            logging.info("Match found: "+str(product_code)+".")
             return product
 
     # if no product found
     if product == None:
        msg = "Material code '{0}' does not match any product."
        errormsg = msg.format(product_code)
-       print(errormsg)
+       logging.error(errormsg)
        return None
 
 def generate_file_path(filename):
@@ -63,7 +65,12 @@ def init_data():
     global products
     global equipment
 
-    print("Initializing data...")
+    # Initialize the logger
+    loggingdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '\\logs\\'
+    if not os.path.exists(loggingdir):
+        os.makedirs(loggingdir)
+    logging.basicConfig(filename=loggingdir + datetime.date.today().isoformat() +'.log', level=logging.INFO)
+    logging.info("Initializing data...")
 
     # load configuration information
     config = configparser.ConfigParser()
@@ -72,10 +79,10 @@ def init_data():
         product_file_name = str(config['File Locations']['Product File Name'])
         equipment_file_name = str(config['File Locations']['Equipment File Name'])
     except KeyError as e:
-        print('Key Error occurred when reading settings file - could not find key "%s"' % str(e))
-        sys.exit(1)
+        logging.error('Key Error occurred when reading settings file - could not find key "%s"' % str(e), exc_info=True)
+        sys.exit(-1)
     except Exception as e:
-        print("An unspecified exception occurred -- " +str(e))
+        logging.error("An unspecified exception occurred -- " +str(e), exc_info=True)
 
     products = load_products(generate_file_path(product_file_name))
     equipment = load_equipment(generate_file_path(equipment_file_name))
@@ -86,7 +93,7 @@ def ln_partial(viscosity_value, percentage_in_blend):
     try:
         return (percentage_in_blend * math.log(viscosity_value)) / math.log(1000*viscosity_value)
     except ValueError as e:
-        print("Encountered a Value Error while calculating the ln partial -- " + str(e))
+        logging.error("Encountered a Value Error while calculating the ln partial -- " + str(e), exc_info=True)
         raise
 
 def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_thresholds, initial_fill_size, residual_volume):
@@ -100,7 +107,6 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     elements_above_threshold = []
 
     # run values through the loop until the formula returns a value less than the concentration threshold for each element
-    print("\nNow beginning flush simulations.")
     flush_count = 0
     while True:
         for element in current_concentrations:
@@ -110,22 +116,22 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     
         if len(elements_above_threshold) > 0:
             # increment the number of flushes if one element is above threshold
-            print("Testing "+str(len(elements_above_threshold)) +" elements.")
+            logging.info("Testing "+str(len(elements_above_threshold)) +" elements.")
             flush_count += 1
             # calculate new concentrations based on a simulated flush
-            print("Current elemental concentrations, flush cycle " +str(flush_count))
+            logging.info("Current elemental concentrations, flush cycle " +str(flush_count))
             for element in elements_above_threshold:
-                print(element + " "+str(current_concentrations[element]))
+                logging.info(element + " "+str(current_concentrations[element]))
                 # use diluation formula to adjust the values for the elementla conccentrations in the blend
                 current_concentrations[element] = (residual_volume * current_concentrations[element] + initial_fill_size * concentration_thresholds[element]) / (initial_fill_size + residual_volume)
-            print("Resulting concentrations:")
+            logging.info("Resulting concentrations:")
             for element in elements_above_threshold:
-                print(element + " "+str(current_concentrations[element]))
+                logging.info(element + " "+str(current_concentrations[element]))
 
             # clear list of elements above threshold so that it can be cleanly populated in the next loop
             elements_above_threshold = []
         else:
-            print("All values now within acceptable range ({0}%) of target.".format(100*EPSILON))
+            logging.info("All values now within acceptable range ({0}%) of target.".format(100*EPSILON))
             break
 
     return flush_count
@@ -134,7 +140,6 @@ def _generate_elemental_factor(prev_product, next_product, destination, source =
     """Compares every element a product has in common and 
     determines the number of flushes necessary to bring the difference between 
     these elemental values to an acceptable level."""
-    print("\nNow calculating number of cyles needed for elemental factor...")
     if len(prev_product.elemental_values) >= len(next_product.elemental_values):
         smaller_dictionary = next_product.elemental_values
         larger_dictionary = prev_product.elemental_values
@@ -142,13 +147,13 @@ def _generate_elemental_factor(prev_product, next_product, destination, source =
         smaller_dictionary = prev_product.elemental_values
         larger_dictionary = next_product.elemental_values
 
-    print("\nInitial elemental values: ")
+    logging.info("Initial elemental values: ")
     for e in prev_product.elemental_values:
-        print(str(e) + " - "+ str(prev_product.elemental_values[e]))
+        logging.info(str(e) + " - "+ str(prev_product.elemental_values[e]))
 
-    print("Target elemental values: ")
+    logging.info("Target elemental values: ")
     for e in next_product.elemental_values:
-        print(str(e) + " - "+ str(next_product.elemental_values[e]))
+        logging.info(str(e) + " - "+ str(next_product.elemental_values[e]))
 
     # find common elements by iterating over the smaller dictionary
     initial_concentration = {}
@@ -160,17 +165,17 @@ def _generate_elemental_factor(prev_product, next_product, destination, source =
                     initial_concentration[element] = float(prev_product.elemental_values[element])
                     concentration_threshold[element] = float(next_product.elemental_values[element])
             except ValueError:
-                print("Products contain invalid values for field " +element)
-                print("Previous product: "+prev_product.elemental_values[element])
-                print("Next product: "+next_product.elemental_values[element])
+                logging.error("Products contain invalid values for field " +element)
+                logging.error("Previous product: "+prev_product.elemental_values[element])
+                logging.error("Next product: "+next_product.elemental_values[element])
                 continue
 
     if len(initial_concentration) > 0:
-        print("\nProducts have " +str(len(initial_concentration)) +" element(s) in common:")
+        logging.info("Products have " +str(len(initial_concentration)) +" element(s) in common:")
         for key in initial_concentration:
-            print("-"+str(key))
+            logging.info("-"+str(key))
     else:
-        print("\nProducts have no elements in common.")
+        logging.info("Products have no elements in common.")
         return 0
     # determine number of flushes 
     if destination.area == 'Packaging':
@@ -179,13 +184,12 @@ def _generate_elemental_factor(prev_product, next_product, destination, source =
         initial_volume = volume
 
     num_flushes = get_num_elemental_flushes(initial_concentration, concentration_threshold, initial_volume, destination.residual_volume)
-    print("Number of cycles needed for elemental factor: " +str(num_flushes))
+    logging.info("Number of cycles needed for elemental factor: " +str(num_flushes))
     return num_flushes
 
 def _generate_viscosity_factor(prev_product, next_product, destination, volume = None):
     """Determines the flush volume necessary to bring about 
     acceptable levels of viscosity for the next product."""
-    print("\nNow calculating number of cyles needed for viscosity factor...")
     global config
     VISCOSITY_EPSILON = float(config['Algebraic Values']['Viscosity Epsilon'])
     LINEARIZED_VISCOSITY_CONSTANT = float(config['Algebraic Values']['Viscosity Constant'])
@@ -205,12 +209,12 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
         target_viscosity_avg_at_40 = next_product.calculate_average_viscosity_at_40()
         if not curr_viscosity_avg_at_100 == 0 and not target_viscosity_avg_at_40 ==0:
             DEMULSE_CONSTANT = int(config['Algebraic Values']['Demulse Constant'])
-            print("Treating viscosity factor as 'demulse' (moving from viscosity at 100 -> 40).")
-            print("Demulse constant = " + str(DEMULSE_CONSTANT))
+            logging.warning("Treating viscosity factor as 'demulse' (moving from viscosity at 100 -> 40).")
+            logging.info("Demulse constant = " + str(DEMULSE_CONSTANT))
             return(DEMULSE_CONSTANT)
 
         # return an error if we fall through all other options to this point
-        print("No viscosity values available. Returning...")
+        logging.warning("No viscosity values available. Returning...")
         return -1
     
     # initialize data for calculations
@@ -223,11 +227,15 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
     if target_viscosity_avg >= int(config['Algebraic Values']['Viscosity Threshold']):
         flush_product = find_match(int(config['Other']['BaseOil2 Product Code']))
 
+    if flush_product == None:
+        logging.error("Could not find a match for the flush product. Returning...")
+        return -1
+
     # Loop if the current viscosity is not within an acceptable limit of the target viscosity
     if not abs(curr_viscosity_avg - target_viscosity_avg) < VISCOSITY_EPSILON:
         while True:
-            print("\nCurrent viscosity average: " +str(curr_viscosity_avg))
-            print("Target viscosity average: " +str(target_viscosity_avg))
+            logging.info("Current viscosity average: " +str(curr_viscosity_avg))
+            logging.info("Target viscosity average: " +str(target_viscosity_avg))
 
             num_cycles += 1
             if volume is None:
@@ -242,31 +250,37 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
             try:
                 retention_partial = ln_partial(curr_viscosity_avg, retention_ratio)
             except Exception:
-                print("Failed to calculate retention partial.")
+                logging.error("Failed to calculate retention partial.", exc_info=True)
                 return -1
             try:
                 complement_partial = ln_partial(target_viscosity_avg, retention_ratio_complement)
             except Exception:
-                print("Failed to calculate complement ln partial") 
+                logging.error("Failed to calculate complement ln partial", exc_info=True) 
                 return -1
 
             sum_of_partials = retention_partial + complement_partial # useful for readability
             intermediate_product = (sum_of_partials * LINEARIZED_VISCOSITY_CONSTANT) /(1 - sum_of_partials)
             resulting_viscosity = math.exp(intermediate_product)
-            print("Viscosity result, round " +str(num_cycles) +": " +str(resulting_viscosity))
+            logging.info("Viscosity result, round " +str(num_cycles) +": " +str(resulting_viscosity))
             curr_viscosity_avg = resulting_viscosity
 
             # return if the result is within an acceptable range; otherwise loop
             if abs(curr_viscosity_avg - target_viscosity_avg) < VISCOSITY_EPSILON:
                 break
+    else:
+        logging.info("Current viscosity average: " +str(curr_viscosity_avg))
+        logging.info("Target viscosity average: " +str(target_viscosity_avg))
 
-    print("Number of cyles needed for viscosity factor: " + str(num_cycles))
+
+    logging.info("Number of cyles needed for viscosity factor: " + str(num_cycles))
     return num_cycles
 
 def generate_flush_factor(prev_product, next_product, destination, volume = None):
     global products
     global config
-    # determine number of cyles needed to yield appropriate elemental concentrations
+    """ Determine number of cyles needed to yield appropriate elemental concentrations. """
+
+    # for packaging operation, where a volume need not be specified
     if volume is None:
         elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination)
         viscosity_cycles = _generate_viscosity_factor(prev_product, next_product, destination)
@@ -282,26 +296,27 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
     # non-demulse --> emulse
     # non-demulse --> demulse
     if (prev_product.demulse_test == "" and not next_product.demulse_test == "") or (not prev_product.demulse_test == "" and not next_product.demulse_test== ""):
-       print("\nDemulse factor present. Using demulse constant for number of cycles needed to clear demulse contaminants.")
+       logging.info("Demulse factor present. Using demulse constant for number of cycles needed to clear demulse contaminants.")
        demulse_cycles = int(config['Algebraic Values']['Demulse Constant'])
     else:
-       print("\nNo demulse factor present.")
+       logging.info("No demulse factor present.")
 
     # dye factor
     dye_cycles = 0
     if prev_product.dyed == "YES" and next_product.dyed == "NO":
        dye_cycles = int(config['Algebraic Values']['Dye Constant'])
-       print("\nDye factor present. \n Using dye constant {0} for number of cycles needed to clear dye contaminants.".format(dye_cycles))
+       logging.info("Dye factor present. Using dye constant {0} for number of cycles needed to clear dye contaminants.".format(dye_cycles))
     else:
-       print("\nNo dye factor present.")
+       logging.info("No dye factor present.")
 
     flush_cycles = max(elemental_cycles, viscosity_cycles, demulse_cycles, dye_cycles) 
-    print("\nFINAL FLUSH FACTOR = max (viscosity cycles, elemental cycles, demulse cycles, dye cycles) = " +str(flush_cycles))
+    logging.info("FINAL FLUSH FACTOR moving from " +str(prev_product.material_code) + " to " +str(next_product.material_code) +" = max (viscosity cycles, elemental cycles, demulse cycles, dye cycles) = " +str(flush_cycles))
     return flush_cycles
 
 
 # launch a script component if the GUI isn't used
 if __name__ == "__main__":
+    """Script component if launched from command line. Note: Severely deprecated since gui component added."""
     init_data()
     global products
     global family_group_matrix
