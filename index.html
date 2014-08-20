@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Flush Tool : An application to quickly calculate the optimal flush volume between products">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Flush Tool</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/johnsaigle/flush-tool">View on GitHub</a>
+
+          <h1 id="project_title">Flush Tool</h1>
+          <h2 id="project_tagline">An application to quickly calculate the optimal flush volume between products</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/johnsaigle/flush-tool/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/johnsaigle/flush-tool/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="flush-tool" class="anchor" href="#flush-tool"><span class="octicon octicon-link"></span></a>Flush Tool</h1>
+
+<p>The flush tool is used to determine an optimal flush volume given certain critera (ie. the previous product, next product, destination equipment and blend/receipt size if applicable). 
+Product and equipment information is loaded from Excel files using the xlrd package.</p>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The use of the program is very intuitive. Simply enter a material code representing the previous product in the tank, the next product entering the tank, and the destination (the tank itself). Depending on which department the equipment is located in, a volume field representing the blend size will be enabled as an additional input. Click 'Generate', and the results will be displayed.</p>
+
+<h2>
+<a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>There are various variables that are read by the program from a file called 'settings.ini'. A description of the function of each variable follows:</p>
+
+<p><strong>File Locations</strong></p>
+
+<p><em>(These represent filenames and administrative information.)</em></p>
+
+<ul>
+<li>Product File Name -- the name of the file - in the root directory - that contains the product information</li>
+<li>Equipment File name -- the name of the file - in the root directory - that contains the equipment information</li>
+<li>Title of Product Worksheet -- the name of the Excel worksheet within the Product File from which to read</li>
+<li>Title of Equipment Worksheet -- the name of the Excel worksheet within the Equipment File from which to read</li>
+</ul><p><strong>Algebraic Values</strong></p>
+
+<p><em>(These represent variables and equations used in the flush calculations.)</em></p>
+
+<ul>
+<li>Concentration Epsilon -- the flush cycles will continue incrementing until the simulated elemental concentrations are withn X% of the target, where X is the Concentration Epsilon</li>
+<li>Viscosity Epsilon -- the flush cycles will continue incrementing until the simulated viscosity values are withn X% of the target, where X is the Viscosity Epsilon</li>
+<li>Viscosity Constant -- used in the calculation of ln partials. This value shouldn't be changed, but given my limited chemistry background I left this configurable just in case.</li>
+<li>Demulse Constant -- the number of cycles needed when a demulse factor is present in the flush.</li>
+<li>Dye Constant -- the number of cycles needed when a dye factor is present in the flush.</li>
+<li>Viscosity Threshold -- when the target viscosity average is above this value, the flush product will be set to Base Oil 2</li>
+</ul><h2>
+<a name="dependencies" class="anchor" href="#dependencies"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+
+<p>This project was built using Python 3 with libraries from <a href="http://portablepython.com">Portable Python</a>, especially <a href="https://wiki.python.org/moin/PyQt">PyQt</a>. <a href="https://pypi.python.org/pypi/xlrd">xlrd</a> was used for reading data from Excel.   </p>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>This code can be distributed under the MIT license. </p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Flush Tool maintained by <a href="https://github.com/johnsaigle">johnsaigle</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
