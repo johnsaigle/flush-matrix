@@ -1,4 +1,4 @@
-Flush Tool
+[Flush Tool](http://johnsaigle.github.io/flush-tool/)
 ==========
 The flush tool is used to determine an optimal flush volume given certain critera (ie. the previous product, next product, destination equipment and blend/receipt size if applicable). 
 Product and equipment information is loaded from Excel files using the xlrd package.
