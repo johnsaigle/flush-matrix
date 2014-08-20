@@ -283,7 +283,7 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
         elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination)
         viscosity_cycles = _generate_viscosity_factor(prev_product, next_product, destination)
     else:
-        elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination, source, volume)
+        elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination, volume)
         viscosity_cycles = _generate_viscosity_factor(prev_product, next_product, destination, volume)
         
     # demulse factor

@@ -40,18 +40,25 @@ class AppWindow(QtGui.QMainWindow, form_class):
             QtGui.QComboBox.addItem(combobox, e.name)
 
     def grab_destination_selection(self):
+        self.label_num_cycles.setValue(0)
+        self.label_cycle_volume.setText("0")
+        self.label_material.setText("--")
+        self.linetext_volume.setText("0")
         selection = self.combo_destination.currentText()
         for e in flush_tool.equipment:
             if e.name == selection:
                 department = e.area
                 break
         if department == 'Blending':
+            self.label_cycle_volume.setText("0")
             self.linetext_volume.setEnabled(True)
             self.label_volume.setText('Blend Size (L)')
         elif department == 'Bulk Receiving':
+            self.label_cycle_volume.setText("0")
             self.linetext_volume.setEnabled(True)
             self.label_volume.setText('Receipt Size (L)')
         else:
+            self.label_cycle_volume.setText("0")
             self.linetext_volume.setEnabled(False)
             self.label_volume.setText('Volume (L)')
 
@@ -148,6 +155,9 @@ class AppWindow(QtGui.QMainWindow, form_class):
                 return
 
             num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination, volume)
+            self.label_cycle_volume.setText("0")
+            self.label_num_cycles.setValue(0)
+            self.label_material.setText("--")
 
         if num_flush_cycles is None:
             logging.critical("Fatal error: unable to calculate flush factor.")
@@ -161,6 +171,7 @@ class AppWindow(QtGui.QMainWindow, form_class):
                   "Similar Products",
                   "The flush result is equal to zero. No flush necessary!")
         else:
+            self.label_cycle_volume.setText("0")
             self.label_num_cycles.setValue(int(num_flush_cycles))
             self.label_cycle_volume.setText(str(destination.cycle_size))
             self.label_material.setText(str(destination.flush_material))
