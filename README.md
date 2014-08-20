@@ -12,6 +12,7 @@ Configuration
 There are various variables that are read by the program from a file called 'settings.ini'. A description of the function of each variable follows:
 
 **File Locations**
+
 *(These represent filenames and administrative information.)*
   * Product File Name -- the name of the file - in the root directory - that contains the product information
   * Equipment File name -- the name of the file - in the root directory - that contains the equipment information
@@ -19,6 +20,7 @@ There are various variables that are read by the program from a file called 'set
   * Title of Equipment Worksheet -- the name of the Excel worksheet within the Equipment File from which to read
 
 **Algebraic Values**
+
 *(These represent variables and equations used in the flush calculations.)*
   * Concentration Epsilon -- the flush cycles will continue incrementing until the simulated elemental concentrations are withn X% of the target, where X is the Concentration Epsilon
   * Viscosity Epsilon -- the flush cycles will continue incrementing until the simulated viscosity values are withn X% of the target, where X is the Viscosity Epsilon
