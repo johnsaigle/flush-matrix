@@ -1,38 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
   <head>
-    <meta charset='utf-8'>
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="Flush Tool : An application to quickly calculate the optimal flush volume between products">
+    <title>Flush Tool by johnsaigle</title>
 
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
-
-    <title>Flush Tool</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
   </head>
-
   <body>
+    <div class="wrapper">
+      <header>
+        <h1>Flush Tool</h1>
+        <p>An application to quickly calculate the optimal flush volume between products</p>
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/johnsaigle/flush-tool">View on GitHub</a>
+        <p class="view"><a href="https://github.com/johnsaigle/flush-tool">View the Project on GitHub <small>johnsaigle/flush-tool</small></a></p>
 
-          <h1 id="project_title">Flush Tool</h1>
-          <h2 id="project_tagline">An application to quickly calculate the optimal flush volume between products</h2>
 
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/johnsaigle/flush-tool/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/johnsaigle/flush-tool/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
+        <ul>
+          <li><a href="https://github.com/johnsaigle/flush-tool/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/johnsaigle/flush-tool/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/johnsaigle/flush-tool">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
         <h1>
-<a name="flush-tool" class="anchor" href="#flush-tool"><span class="octicon octicon-link"></span></a>Flush Tool</h1>
+<a name="flush-tool" class="anchor" href="#flush-tool"><span class="octicon octicon-link"></span></a><a href="http://johnsaigle.github.io/flush-tool/">Flush Tool</a>
+</h1>
 
 <p>The flush tool is used to determine an optimal flush volume given certain critera (ie. the previous product, next product, destination equipment and blend/receipt size if applicable). 
 Product and equipment information is loaded from Excel files using the xlrd package.</p>
@@ -41,6 +39,8 @@ Product and equipment information is loaded from Excel files using the xlrd pack
 <a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
 
 <p>The use of the program is very intuitive. Simply enter a material code representing the previous product in the tank, the next product entering the tank, and the destination (the tank itself). Depending on which department the equipment is located in, a volume field representing the blend size will be enabled as an additional input. Click 'Generate', and the results will be displayed.</p>
+
+<p><em>Note: For security reasons, the data files that the application depends on are not included in the source or in any releases. These must be added to the (unzipped) root folder before execution. If you should be using this application, you should have these files.</em></p>
 
 <h2>
 <a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h2>
@@ -70,24 +70,24 @@ Product and equipment information is loaded from Excel files using the xlrd pack
 </ul><h2>
 <a name="dependencies" class="anchor" href="#dependencies"><span class="octicon octicon-link"></span></a>Dependencies</h2>
 
-<p>This project was built using Python 3 with libraries from <a href="http://portablepython.com">Portable Python</a>, especially <a href="https://wiki.python.org/moin/PyQt">PyQt</a>. <a href="https://pypi.python.org/pypi/xlrd">xlrd</a> was used for reading data from Excel.   </p>
+<p>This project was built using Python 3 with libraries from <a href="http://portablepython.com">Portable Python</a>, especially <a href="https://wiki.python.org/moin/PyQt">PyQt</a>. <a href="https://pypi.python.org/pypi/xlrd">xlrd</a> was used for reading data from Excel. </p>
+
+<h2>
+<a name="downloads" class="anchor" href="#downloads"><span class="octicon octicon-link"></span></a>Downloads</h2>
+
+<p><a href="https://github.com/johnsaigle/flush-tool/releases">https://github.com/johnsaigle/flush-tool/releases</a></p>
 
 <h2>
 <a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>This code can be distributed under the MIT license. </p>
       </section>
-    </div>
-
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Flush Tool maintained by <a href="https://github.com/johnsaigle">johnsaigle</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/johnsaigle">johnsaigle</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
-
+    <script src="javascripts/scale.fix.js"></script>
     
-
   </body>
 </html>
