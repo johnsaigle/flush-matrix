@@ -32,7 +32,11 @@ There are various variables that are read by the program from a file called 'set
 
 Dependencies
 ------------
-This project was built using Python 3 with libraries from [Portable Python](http://portablepython.com), especially [PyQt](https://wiki.python.org/moin/PyQt). [xlrd](https://pypi.python.org/pypi/xlrd) was used for reading data from Excel.   
+This project was built using Python 3 with libraries from [Portable Python](http://portablepython.com), especially [PyQt](https://wiki.python.org/moin/PyQt). [xlrd](https://pypi.python.org/pypi/xlrd) was used for reading data from Excel. 
+
+Downloads
+---------
+https://github.com/johnsaigle/flush-tool/releases
 
 License
 -------
