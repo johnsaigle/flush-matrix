@@ -99,7 +99,7 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
     # initialize variables
     global config
-    EPSILON = float(config['Algebraic Values']['Concentration Epsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
+    ELEMENTAL_EPSILON = float(config['Algebraic Values']['Concentration Epsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
     current_concentrations = initial_concentrations_dictionary # dictionary, passed from elemental factor function
 
     # check for elements above threshold
@@ -110,7 +110,7 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     while True:
         for element in current_concentrations:
             # check for unacceptable elemental levels
-            if current_concentrations[element] > concentration_thresholds[element] and abs(current_concentrations[element] - concentration_thresholds[element]) > EPSILON:
+            if abs(current_concentrations[element] - concentration_thresholds[element]) > (ELEMENTAL_EPSILON * concentration_thresholds[element]):
                 elements_above_threshold.append(element)
     
         if len(elements_above_threshold) > 0:
@@ -130,12 +130,12 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
             # clear list of elements above threshold so that it can be cleanly populated in the next loop
             elements_above_threshold = []
         else:
-            logging.info("All values now within acceptable range ({0}%) of target.".format(100*EPSILON))
+            logging.info("All values now within acceptable range ({0}%) of target.".format(100*ELEMENTAL_EPSILON))
             break
 
     return flush_count
 
-def _generate_elemental_factor(prev_product, next_product, destination, source = None, volume = None):
+def _generate_elemental_factor(prev_product, next_product, destination, volume = None):
     """Compares every element a product has in common and 
     determines the number of flushes necessary to bring the difference between 
     these elemental values to an acceptable level."""
@@ -231,19 +231,19 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
         return -1
 
     # Loop if the current viscosity is not within an acceptable limit of the target viscosity
-    if not abs(curr_viscosity_avg - target_viscosity_avg) < VISCOSITY_EPSILON:
+    if abs(curr_viscosity_avg - target_viscosity_avg) > (VISCOSITY_EPSILON * target_viscosity_avg):
         while True:
             logging.info("Current viscosity average: " +str(curr_viscosity_avg))
             logging.info("Target viscosity average: " +str(target_viscosity_avg))
 
             num_cycles += 1
             if volume is None:
-                total_volume = destination.initial_fill_size + residual_volume
+                total_volume = destination.initial_fill_size + destination.residual_volume
             else:
-                total_volume = volume + residual_volume
+                total_volume = volume + destination.residual_volume
                    
-            retention_ratio = float(residual_volume / total_volume)
-            retention_ratio_complement = float(1- retention_ratio)
+            retention_ratio = float(destination.residual_volume / total_volume)
+            retention_ratio_complement = float(1 - retention_ratio)
 
             # calculate ln partials -- % in blend * ln(viscosity) / ln(1000*viscosity) 
             try:
@@ -269,7 +269,6 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
     else:
         logging.info("Current viscosity average: " +str(curr_viscosity_avg))
         logging.info("Target viscosity average: " +str(target_viscosity_avg))
-
 
     logging.info("Number of cyles needed for viscosity factor: " + str(num_cycles))
     return num_cycles
