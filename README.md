@@ -6,6 +6,7 @@ Product and equipment information is loaded from Excel files using the xlrd pack
 Usage
 -----
 The use of the program is very intuitive. Simply enter a material code representing the previous product in the tank, the next product entering the tank, and the destination (the tank itself). Depending on which department the equipment is located in, a volume field representing the blend size will be enabled as an additional input. Click 'Generate', and the results will be displayed.
+Note: For security reasons, the data files that the application depends on are not included in the source or in any releases. These must be added to the (unzipped) root folder before execution. If you should be using this application, you should have these files.
 
 Configuration
 -------------
