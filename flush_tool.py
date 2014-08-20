@@ -7,7 +7,6 @@ import configparser
 import logging
 import datetime
 from flushmatrix.lib.loaders import product_loader
-from flushmatrix.lib.loaders import matrix_loader
 from flushmatrix.lib.loaders import equipment_loader
 from flushmatrix.lib.entities import product
 from flushmatrix.lib.entities import equipment
