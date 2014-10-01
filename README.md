@@ -26,8 +26,8 @@ There are various variables that are read by the program from a file called 'set
   * Concentration Epsilon -- the flush cycles will continue incrementing until the simulated elemental concentrations are withn X% of the target, where X is the Concentration Epsilon
   * Viscosity Epsilon -- the flush cycles will continue incrementing until the simulated viscosity values are withn X% of the target, where X is the Viscosity Epsilon
   * Viscosity Constant -- used in the calculation of ln partials. This value shouldn't be changed, but given my limited chemistry background I left this configurable just in case.
-  * Demulse Constant -- the number of cycles needed when a demulse factor is present in the flush.
-  * Dye Constant -- the number of cycles needed when a dye factor is present in the flush.
+  * Demulse Cycle Count -- the number of cycles needed when a demulse factor is present in the flush.
+  * Dye Cycle Count -- the number of cycles needed when a dye factor is present in the flush.
   * Viscosity Threshold -- when the target viscosity average is above this value, the flush product will be set to Base Oil 2
 
 Dependencies
