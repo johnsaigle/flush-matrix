@@ -87,6 +87,8 @@ def init_data():
     equipment = load_equipment(generate_file_path(equipment_file_name))
 ### END Data Validation Functions ####
 
+### Calculation functions ###
+
 def ln_partial(viscosity_value, percentage_in_blend):
     """Returns the partial ln of a product given its viscosity and concentration in a blend."""
     try:
@@ -95,45 +97,58 @@ def ln_partial(viscosity_value, percentage_in_blend):
         logging.error("Encountered a Value Error while calculating the ln partial -- " + str(e), exc_info=True)
         raise
 
-def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_thresholds, initial_fill_size, residual_volume):
+def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_thresholds, initial_fill_size, residual_volume, flush_volume):
     """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
     # initialize variables
     global config
     ELEMENTAL_EPSILON = float(config['Algebraic Values']['Concentration Epsilon']) # used in elemental difference calculations to prevent diminishing returns on flush cycles
     current_concentrations = initial_concentrations_dictionary # dictionary, passed from elemental factor function
-
-    # check for elements above threshold
     elements_above_threshold = []
+    flush_count = 0
+
+    logging.info("INITIAL ELEMENTAL TEST (epsilon = {0}):".format(str(ELEMENTAL_EPSILON)))
+    for element in current_concentrations:
+        # intial check for unacceptable elemental levels
+        delta = (residual_volume * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
+        logging.info("{0} 'Delta' concentration = {1}. Delta < Epsilon = {2}".format(element, delta, delta < ELEMENTAL_EPSILON))
+        if delta > ELEMENTAL_EPSILON:
+            elements_above_threshold.append(element)
+
+    if len(elements_above_threshold) == 0:
+        logging.info("Elemental test passed: no flush cycles needed.")
+        return 0
 
     # run values through the loop until the formula returns a value less than the concentration threshold for each element
-    flush_count = 0
     while True:
+        # increment the number of flushes 
+        flush_count += 1
+        logging.info("Elemental Flush Round ({0}): Testing "+str(len(elements_above_threshold)) +" elements.".format(flush_count))
+        # calculate new concentrations based on a simulated flush
+        logging.info("Current elemental concentrations:")
+        for element in elements_above_threshold:
+            logging.info(element + " "+str(current_concentrations[element]))
+            # use diluation formula to adjust the values for the elemental concentrations in the blend
+            current_concentrations[element] = ((residual_volume + (flush_count * flush_volume)) * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
+        
+        logging.info("Resulting concentrations after flush:")
+        for element in elements_above_threshold:
+            logging.info(element + " "+str(current_concentrations[element]))
+
+        # clear list of elements above threshold so that it can be cleanly populated in the next loop
+        elements_above_threshold = []
+
         for element in current_concentrations:
             # check for unacceptable elemental levels
-            if abs(current_concentrations[element] - concentration_thresholds[element]) > (ELEMENTAL_EPSILON * concentration_thresholds[element]):
+            delta = (residual_volume * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
+            logging.info("{0} 'Delta' concentration = {1}. Delta < Epsilon = ".format(delta > ELEMENTAL_EPSILON))
+            if delta > ELEMENTAL_EPSILON:
                 elements_above_threshold.append(element)
-    
-        if len(elements_above_threshold) > 0:
-            # increment the number of flushes if one element is above threshold
-            logging.info("Testing "+str(len(elements_above_threshold)) +" elements.")
-            flush_count += 1
-            # calculate new concentrations based on a simulated flush
-            logging.info("Current elemental concentrations, flush cycle " +str(flush_count))
-            for element in elements_above_threshold:
-                logging.info(element + " "+str(current_concentrations[element]))
-                # use diluation formula to adjust the values for the elementla conccentrations in the blend
-                current_concentrations[element] = (residual_volume * current_concentrations[element] + initial_fill_size * concentration_thresholds[element]) / (initial_fill_size + residual_volume)
-            logging.info("Resulting concentrations:")
-            for element in elements_above_threshold:
-                logging.info(element + " "+str(current_concentrations[element]))
 
-            # clear list of elements above threshold so that it can be cleanly populated in the next loop
-            elements_above_threshold = []
-        else:
-            logging.info("All values now within acceptable range ({0}%) of target.".format(100*ELEMENTAL_EPSILON))
-            break
+        # if all elements are clear, we can return. Otherwise we loop. 
+        if len(elements_above_threshold) == 0:
+            logging.info("All values within acceptable range ({0}%) of target.".format(100*ELEMENTAL_EPSILON))
+            return flush_count            
 
-    return flush_count
 
 def _generate_elemental_factor(prev_product, next_product, destination, volume = None):
     """Compares every element a product has in common and 
@@ -182,11 +197,11 @@ def _generate_elemental_factor(prev_product, next_product, destination, volume =
     else:
         initial_volume = volume
 
-    num_flushes = get_num_elemental_flushes(initial_concentration, concentration_threshold, initial_volume, destination.residual_volume)
+    num_flushes = get_num_elemental_flushes(initial_concentration, concentration_threshold, initial_volume, destination.residual_volume, destination.cycle_size)
     logging.info("Number of cycles needed for elemental factor: " +str(num_flushes))
     return num_flushes
 
-def _generate_viscosity_factor(prev_product, next_product, destination, volume = None):
+def _generate_viscosity_factor(prev_product, next_product, destination, flush_volume, volume = None):
     """Determines the flush volume necessary to bring about 
     acceptable levels of viscosity for the next product."""
     global config
@@ -207,9 +222,9 @@ def _generate_viscosity_factor(prev_product, next_product, destination, volume =
         curr_viscosity_avg_at_100 = prev_product.calculate_average_viscosity_at_100()
         target_viscosity_avg_at_40 = next_product.calculate_average_viscosity_at_40()
         if not curr_viscosity_avg_at_100 == 0 and not target_viscosity_avg_at_40 ==0:
-            DEMULSE_CONSTANT = int(config['Algebraic Values']['Demulse Constant'])
+            DEMULSE_CONSTANT = int(config['Algebraic Values']['Demulse Cycle Count'])
             logging.warning("Treating viscosity factor as 'demulse' (moving from viscosity at 100 -> 40).")
-            logging.info("Demulse constant = " + str(DEMULSE_CONSTANT))
+            logging.info("Demulse cycle count = " + str(DEMULSE_CONSTANT))
             return(DEMULSE_CONSTANT)
 
         # return an error if we fall through all other options to this point
@@ -294,16 +309,16 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
     # non-demulse --> emulse
     # non-demulse --> demulse
     if (prev_product.demulse_test == "" and not next_product.demulse_test == "") or (not prev_product.demulse_test == "" and not next_product.demulse_test== ""):
-       logging.info("Demulse factor present. Using demulse constant for number of cycles needed to clear demulse contaminants.")
-       demulse_cycles = int(config['Algebraic Values']['Demulse Constant'])
+       logging.info("Demulse factor present. Using demulse cycle count for number of cycles needed to clear demulse contaminants.")
+       demulse_cycles = int(config['Algebraic Values']['Demulse Cycle Count'])
     else:
        logging.info("No demulse factor present.")
 
     # dye factor
     dye_cycles = 0
     if prev_product.dyed == "YES" and next_product.dyed == "NO":
-       dye_cycles = int(config['Algebraic Values']['Dye Constant'])
-       logging.info("Dye factor present. Using dye constant {0} for number of cycles needed to clear dye contaminants.".format(dye_cycles))
+       dye_cycles = int(config['Algebraic Values']['Dye Cycle Count'])
+       logging.info("Dye factor present. Using dye cycle count {0} for number of cycles needed to clear dye contaminants.".format(dye_cycles))
     else:
        logging.info("No dye factor present.")
 
