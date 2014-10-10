@@ -97,6 +97,10 @@ def ln_partial(viscosity_value, percentage_in_blend):
         logging.error("Encountered a Value Error while calculating the ln partial -- " + str(e), exc_info=True)
         raise
 
+def is_acceptable(concentration_difference, target_concetration, epsilon):
+    return concentration_difference < target_concetration * epsilon
+
+
 def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_thresholds, initial_fill_size, residual_volume, flush_volume):
     """Determines the number of flush cycles to be executed based on the passed concentration of a product, its acceptable threshold value, and the volumes involved in the equipment."""
     # initialize variables
@@ -109,9 +113,11 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     logging.info("INITIAL ELEMENTAL TEST (epsilon = {0}):".format(str(ELEMENTAL_EPSILON)))
     for element in current_concentrations:
         # intial check for unacceptable elemental levels
-        delta = (residual_volume * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
-        logging.info("{0} 'Delta' concentration = {1}. Delta < Epsilon = {2}".format(element, delta, delta < ELEMENTAL_EPSILON))
-        if delta > ELEMENTAL_EPSILON:
+        result = ((residual_volume * current_concentrations[element]) + (initial_fill_size * concentration_thresholds[element])) / (residual_volume + initial_fill_size)
+        concentration_difference = result - concentration_thresholds[element]
+        acceptable = is_acceptable(concentration_difference, concentration_thresholds[element], ELEMENTAL_EPSILON)
+        logging.info("{0} result concentration = {1}. result within target = {2}".format(element, result, acceptable))
+        if acceptable == False:
             elements_above_threshold.append(element)
 
     if len(elements_above_threshold) == 0:
@@ -122,26 +128,23 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
     while True:
         # increment the number of flushes 
         flush_count += 1
-        logging.info("Elemental Flush Round ({0}): Testing "+str(len(elements_above_threshold)) +" elements.".format(flush_count))
+        logging.info("Elemental Flush Round ({0}): Testing {1} elements.".format(flush_count, len(elements_above_threshold)))
         # calculate new concentrations based on a simulated flush
         logging.info("Current elemental concentrations:")
         for element in elements_above_threshold:
             logging.info(element + " "+str(current_concentrations[element]))
             # use diluation formula to adjust the values for the elemental concentrations in the blend
-            current_concentrations[element] = ((residual_volume + (flush_count * flush_volume)) * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
-        
-        logging.info("Resulting concentrations after flush:")
-        for element in elements_above_threshold:
-            logging.info(element + " "+str(current_concentrations[element]))
+            current_concentrations[element] = ((residual_volume * current_concentrations[element]) + (initial_fill_size * concentration_thresholds[element])) / (residual_volume + initial_fill_size)
 
         # clear list of elements above threshold so that it can be cleanly populated in the next loop
         elements_above_threshold = []
 
         for element in current_concentrations:
-            # check for unacceptable elemental levels
-            delta = (residual_volume * current_concentrations[element]) / (initial_fill_size * concentration_thresholds[element])
-            logging.info("{0} 'Delta' concentration = {1}. Delta < Epsilon = ".format(delta > ELEMENTAL_EPSILON))
-            if delta > ELEMENTAL_EPSILON:
+            # if elements are still out of the acceptable range, loop again
+            concentration_difference = abs(concentration_thresholds[element] - current_concentrations[element])
+            acceptable = is_acceptable(concentration_difference, concentration_thresholds[element], ELEMENTAL_EPSILON)
+            logging.info("{0} result concentration = {1}. result within target = {2}".format(element, current_concentrations[element], acceptable))
+            if acceptable == False:
                 elements_above_threshold.append(element)
 
         # if all elements are clear, we can return. Otherwise we loop. 
@@ -277,9 +280,11 @@ def _generate_viscosity_factor(prev_product, next_product, destination, flush_vo
             resulting_viscosity = math.exp(intermediate_product)
             logging.info("Viscosity result, round " +str(num_cycles) +": " +str(resulting_viscosity))
             curr_viscosity_avg = resulting_viscosity
-
+            concentration_difference = abs(curr_viscosity_avg - target_viscosity_avg)
+            acceptable = is_acceptable(concentration_difference, target_viscosity_avg, VISCOSITY_EPSILON)
+            logging.info("Resulting viscosity concentration (round {0}) = {1}. result within target = {2}".format(num_cycles, curr_viscosity_avg, acceptable))
             # return if the result is within an acceptable range; otherwise loop
-            if abs(curr_viscosity_avg - target_viscosity_avg) < VISCOSITY_EPSILON:
+            if acceptable:
                 break
     else:
         logging.info("Current viscosity average: " +str(curr_viscosity_avg))
