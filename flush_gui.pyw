@@ -30,8 +30,10 @@ class AppWindow(QtGui.QMainWindow, form_class):
         self.show()
         # bind buttons to event handlers
         self.button_generate.clicked.connect(self.button_generate_clicked)
+        self.button_prev.clicked.connect(self.button_prev_clicked)
+        self.button_next.clicked.connect(self.button_next_clicked)
         self.combo_destination.activated.connect(self.grab_destination_selection)
-    
+
         # populate combo boxes with equipment names
         self.populate_combo_box(self.combo_destination)
 
@@ -62,12 +64,90 @@ class AppWindow(QtGui.QMainWindow, form_class):
             self.linetext_volume.setEnabled(False)
             self.label_volume.setText('Volume (L)')
 
+    def button_prev_clicked(self):
+        """Controls the behaviour of the OK button beside the previous product
+        field."""
+        prev_product_code = self.linetext_prev.text().strip()
+        # NEVER FORGET ABOUT BUFFER OVERFLOW
+        if len(prev_product_code) > 15:
+            QtGui.QMessageBox.critical(self,
+                 "Invalid Input",
+                 "Material code is too large.")
+            return
+
+        # check prev value isn't empty
+        if prev_product_code is None or prev_product_code == "":
+             QtGui.QMessageBox.critical(self,
+                  "Invalid Input",
+                  "Please fill in the 'Previous Material Code' field.")
+             return
+
+        # convert string to int
+        try:
+            prev_product_code = int(prev_product_code)
+        except ValueError:
+            QtGui.QMessageBox.critical(self,
+                   "Invalid Input",
+                   "Material codes must be integers.")
+            return
+
+        # check to make sure provided codes correspond to a product in the database
+        prev_product = flush_tool.find_match(prev_product_code)
+        if prev_product is None:
+            QtGui.QMessageBox.critical(self,
+                 "Invalid Input",
+                 "No match found for Previous Material Code")
+            return
+
+        global prev_selection
+        prev_selection = prev_product
+        self.linetext_prev.setText(prev_selection.name)
+
+    def button_next_clicked(self):
+        """Controls the behaviour of the OK button beside the next product
+        field."""
+        next_product_code = self.linetext_next.text().strip()
+        # check the length
+        if len (next_product_code) > 15:
+            QtGui.QMessageBox.critical(self,
+                 "Invalid Input",
+                 "Material code is too large.")
+            return
+
+        # check next value isn't empty
+        if next_product_code is None or next_product_code == "":
+            QtGui.QMessageBox.critical(self,
+                  "Invalid Input",
+                  "Please fill in the 'Next Material Code' field.")
+            return
+
+        # convert string to int
+        try:
+            next_product_code = int(next_product_code)
+        except ValueError:
+            QtGui.QMessageBox.critical(self,
+                   "Invalid Input",
+                   "Material codes must be integers.")
+            return
+
+        # check to see if the input corresponds to a product
+        next_product = flush_tool.find_match(next_product_code)
+        if next_product is None:
+            QtGui.QMessageBox.critical(self,
+                 "Invalid Input",
+                 "No match found for Next Material Code")
+            return
+
+        # set globally known product to local version
+        global next_selection
+        next_selection = next_product
+        self.linetext_next.setText(next_product.name)
 
     def button_generate_clicked(self):
         """Controls the behaviour of the 'Generate' button."""
+        global prev_selection
+        global next_selection
         # ensure integrity of user values
-        prev_product_code = self.linetext_prev.text().strip()
-        next_product_code = self.linetext_next.text().strip()
         equipment_destination_name = self.combo_destination.currentText()
         destination = None
         volume = 0
@@ -84,62 +164,16 @@ class AppWindow(QtGui.QMainWindow, form_class):
                  "Could not find in loaded equipment for destination selection.")
             return
 
-        # NEVER FORGET ABOUT BUFFER OVERFLOW
-        if len(prev_product_code) > 15 or len (next_product_code) > 15: 
-            QtGui.QMessageBox.critical(self,
-                 "Invalid Input",
-                 "Material code is too large.")
-            return
-
-        # check prev value isn't empty
-        if prev_product_code is None or prev_product_code == "":
-             QtGui.QMessageBox.critical(self,
-                  "Invalid Input",
-                  "Please fill in the 'Previous Material Code' field.")
-             return
-     
-        # check next value isn't empty
-        if next_product_code is None or next_product_code == "":
-            QtGui.QMessageBox.critical(self,
-                  "Invalid Input",
-                  "Please fill in the 'Next Material Code' field.")
-            return
-
-        # convert codes grabbed from text fields into ints
-        try:
-            prev_product_code = int(prev_product_code)
-            next_product_code = int(next_product_code)
-        except ValueError:
-            QtGui.QMessageBox.critical(self,
-                   "Invalid Input",
-                   "Material codes must be integers.")
-            return
-
         # we don't want to run calculations on identicla codes
-        if prev_product_code == next_product_code:
+        if prev_selection == next_selection:
             QtGui.QMessageBox.critical(self,
                    "Invalid Input",
                    "Product codes are identical.")
             return
 
-        # check to make sure provided codes correspond to a product in the database
-        prev_product = flush_tool.find_match(prev_product_code)
-        if prev_product is None:
-            QtGui.QMessageBox.critical(self,
-                 "Invalid Input",
-                 "No match found for Previous Material Code")
-            return
-     
-        next_product = flush_tool.find_match(next_product_code)
-        if next_product is None:
-            QtGui.QMessageBox.critical(self,
-                 "Invalid Input",
-                 "No match found for Next Material Code")
-            return
-
         # if everything is kosher so far, launch the calculating script
         if destination.area == 'Packaging':
-            num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination)
+            num_flush_cycles = flush_tool.generate_flush_factor(prev_selection, next_selection, destination)
         else:
             try:
                 volume = float(self.linetext_volume.text())
@@ -154,7 +188,7 @@ class AppWindow(QtGui.QMainWindow, form_class):
                     "Volume must be a number.")
                 return
 
-            num_flush_cycles = flush_tool.generate_flush_factor(prev_product, next_product, destination, volume)
+            num_flush_cycles = flush_tool.generate_flush_factor(prev_selection, next_selection, destination, volume)
             self.label_cycle_volume.setText("0")
             self.label_num_cycles.setValue(0)
             self.label_material.setText("--")
@@ -162,7 +196,7 @@ class AppWindow(QtGui.QMainWindow, form_class):
         if num_flush_cycles is None:
             logging.critical("Fatal error: unable to calculate flush factor.")
         elif num_flush_cycles < 0:
-            logging.critical("Flush factor is less than 0.")
+            logging.critical("Calculated flush factor is less than 0.")
         elif num_flush_cycles == 0:
             self.label_num_cycles.setValue(int(num_flush_cycles))
             self.label_cycle_volume.setText("0")
@@ -179,7 +213,7 @@ class AppWindow(QtGui.QMainWindow, form_class):
 def main():
     # initialize and show window
     app = QtGui.QApplication(sys.argv)
-    
+
     # load backend before creating front end
     flush_tool.init_data()
 

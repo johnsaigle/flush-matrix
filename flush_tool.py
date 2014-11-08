@@ -25,7 +25,7 @@ def load_equipment(filepath):
     return (equipment_loader.build_equipment(filepath))
 ### END LOADING FUCNTIONS ###
 
-### Data Validation Functions ### 
+### Data Validation Functions ###
 def find_match(product_code):
     global products
     # check if products loaded correctly
@@ -126,7 +126,7 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
 
     # run values through the loop until the formula returns a value less than the concentration threshold for each element
     while True:
-        # increment the number of flushes 
+        # increment the number of flushes
         flush_count += 1
         logging.info("Elemental Flush Round ({0}): Testing {1} elements.".format(flush_count, len(elements_above_threshold)))
         # calculate new concentrations based on a simulated flush
@@ -147,15 +147,15 @@ def get_num_elemental_flushes(initial_concentrations_dictionary, concentration_t
             if acceptable == False:
                 elements_above_threshold.append(element)
 
-        # if all elements are clear, we can return. Otherwise we loop. 
+        # if all elements are clear, we can return. Otherwise we loop.
         if len(elements_above_threshold) == 0:
             logging.info("All values within acceptable range ({0}%) of target.".format(100*ELEMENTAL_EPSILON))
-            return flush_count            
+            return flush_count
 
 
 def _generate_elemental_factor(prev_product, next_product, destination, volume = None):
-    """Compares every element a product has in common and 
-    determines the number of flushes necessary to bring the difference between 
+    """Compares every element a product has in common and
+    determines the number of flushes necessary to bring the difference between
     these elemental values to an acceptable level."""
     if len(prev_product.elemental_values) >= len(next_product.elemental_values):
         smaller_dictionary = next_product.elemental_values
@@ -194,7 +194,7 @@ def _generate_elemental_factor(prev_product, next_product, destination, volume =
     else:
         logging.info("Products have no elements in common.")
         return 0
-    # determine number of flushes 
+    # determine number of flushes
     if destination.area == 'Packaging':
         initial_volume = destination.initial_fill_size
     else:
@@ -204,8 +204,8 @@ def _generate_elemental_factor(prev_product, next_product, destination, volume =
     logging.info("Number of cycles needed for elemental factor: " +str(num_flushes))
     return num_flushes
 
-def _generate_viscosity_factor(prev_product, next_product, destination, flush_volume, volume = None):
-    """Determines the flush volume necessary to bring about 
+def _generate_viscosity_factor(prev_product, next_product, destination, volume = None):
+    """Determines the flush volume necessary to bring about
     acceptable levels of viscosity for the next product."""
     global config
     VISCOSITY_EPSILON = float(config['Algebraic Values']['Viscosity Epsilon'])
@@ -213,7 +213,7 @@ def _generate_viscosity_factor(prev_product, next_product, destination, flush_vo
     # compare viscosities -- we use the average value at 100 becuase it's more common
     curr_viscosity_avg = prev_product.calculate_average_viscosity_at_100()
     target_viscosity_avg = next_product.calculate_average_viscosity_at_100()
-    
+
     # use average at 40 degrees if the value at 100 is invalid
     if curr_viscosity_avg <= 0 or target_viscosity_avg <= 0:
         curr_viscosity_avg = prev_product.calculate_average_viscosity_at_40()
@@ -233,7 +233,7 @@ def _generate_viscosity_factor(prev_product, next_product, destination, flush_vo
         # return an error if we fall through all other options to this point
         logging.warning("No viscosity values available. Returning...")
         return -1
-    
+
     # initialize data for calculations
     num_cycles = 0
     flush_product = next_product # default
@@ -248,47 +248,54 @@ def _generate_viscosity_factor(prev_product, next_product, destination, flush_vo
         logging.error("Could not find a match for the flush product. Returning...")
         return -1
 
-    # Loop if the current viscosity is not within an acceptable limit of the target viscosity
-    if abs(curr_viscosity_avg - target_viscosity_avg) > (VISCOSITY_EPSILON * target_viscosity_avg):
-        while True:
-            logging.info("Current viscosity average: " +str(curr_viscosity_avg))
-            logging.info("Target viscosity average: " +str(target_viscosity_avg))
-
-            num_cycles += 1
-            if volume is None:
-                total_volume = destination.initial_fill_size + destination.residual_volume
-            else:
-                total_volume = volume + destination.residual_volume
-                   
-            retention_ratio = float(destination.residual_volume / total_volume)
-            retention_ratio_complement = float(1 - retention_ratio)
-
-            # calculate ln partials -- % in blend * ln(viscosity) / ln(1000*viscosity) 
-            try:
-                retention_partial = ln_partial(curr_viscosity_avg, retention_ratio)
-            except Exception:
-                logging.error("Failed to calculate retention partial.", exc_info=True)
-                return -1
-            try:
-                complement_partial = ln_partial(target_viscosity_avg, retention_ratio_complement)
-            except Exception:
-                logging.error("Failed to calculate complement ln partial", exc_info=True) 
-                return -1
-
-            sum_of_partials = retention_partial + complement_partial # useful for readability
-            intermediate_product = (sum_of_partials * LINEARIZED_VISCOSITY_CONSTANT) /(1 - sum_of_partials)
-            resulting_viscosity = math.exp(intermediate_product)
-            logging.info("Viscosity result, round " +str(num_cycles) +": " +str(resulting_viscosity))
-            curr_viscosity_avg = resulting_viscosity
-            concentration_difference = abs(curr_viscosity_avg - target_viscosity_avg)
-            acceptable = is_acceptable(concentration_difference, target_viscosity_avg, VISCOSITY_EPSILON)
-            logging.info("Resulting viscosity concentration (round {0}) = {1}. result within target = {2}".format(num_cycles, curr_viscosity_avg, acceptable))
-            # return if the result is within an acceptable range; otherwise loop
-            if acceptable:
-                break
-    else:
+    # initial check for acceptability
+    viscosity_difference = abs(curr_viscosity_avg - target_viscosity_avg)
+    acceptable = is_acceptable(viscosity_difference, target_viscosity_avg, VISCOSITY_EPSILON)
+    if acceptable:
         logging.info("Current viscosity average: " +str(curr_viscosity_avg))
         logging.info("Target viscosity average: " +str(target_viscosity_avg))
+        logging.info("Viscosity is already within acceptable range. No flush needed.")
+        return 0
+
+    # Loop if the current viscosity is not within an acceptable limit of the target viscosity
+    while True:
+        logging.info("Current viscosity average: " +str(curr_viscosity_avg))
+        logging.info("Target viscosity average: " +str(target_viscosity_avg))
+
+        num_cycles += 1
+        if volume is None:
+            total_volume = destination.initial_fill_size + destination.residual_volume
+        else:
+            total_volume = volume + destination.residual_volume
+
+        retention_ratio = float(destination.residual_volume / total_volume)
+        retention_ratio_complement = float(1 - retention_ratio)
+
+        # calculate ln partials -- % in blend * ln(viscosity) / ln(1000*viscosity)
+        try:
+            retention_partial = ln_partial(curr_viscosity_avg, retention_ratio)
+        except Exception:
+            logging.error("Failed to calculate retention partial.", exc_info=True)
+            return -1
+        try:
+            complement_partial = ln_partial(target_viscosity_avg, retention_ratio_complement)
+        except Exception:
+            logging.error("Failed to calculate complement ln partial", exc_info=True)
+            return -1
+
+        sum_of_partials = retention_partial + complement_partial # useful for readability
+        intermediate_product = (sum_of_partials * LINEARIZED_VISCOSITY_CONSTANT) /(1 - sum_of_partials)
+        resulting_viscosity = math.exp(intermediate_product)
+        # output results and update values
+        logging.info("Viscosity result, round " +str(num_cycles) +": " +str(resulting_viscosity))
+        curr_viscosity_avg = resulting_viscosity
+        concentration_difference = abs(curr_viscosity_avg - target_viscosity_avg)
+        # check if the new values are acceptable
+        acceptable = is_acceptable(concentration_difference, target_viscosity_avg, VISCOSITY_EPSILON)
+        logging.info("Resulting viscosity concentration (round {0}) = {1}. result within target = {2}".format(num_cycles, curr_viscosity_avg, acceptable))
+        # return if the result is within an acceptable range; otherwise loop
+        if acceptable:
+            break
 
     logging.info("Number of cyles needed for viscosity factor: " + str(num_cycles))
     return num_cycles
@@ -297,6 +304,8 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
     global products
     global config
     """ Determine number of cyles needed to yield appropriate elemental concentrations. """
+    logging.info("Now beginning flush calculations.")
+    logging.info("PREV: {0} NEXT: {1} DEST: {2}".format(prev_product.name, next_product.name, destination.name))
 
     # for packaging operation, where a volume need not be specified
     if volume is None:
@@ -305,7 +314,7 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
     else:
         elemental_cycles = _generate_elemental_factor(prev_product, next_product, destination, volume)
         viscosity_cycles = _generate_viscosity_factor(prev_product, next_product, destination, volume)
-        
+
     # demulse factor
     demulse_cycles = 0
     # Four cases in which the demulse constant is needed:
@@ -327,7 +336,7 @@ def generate_flush_factor(prev_product, next_product, destination, volume = None
     else:
        logging.info("No dye factor present.")
 
-    flush_cycles = max(elemental_cycles, viscosity_cycles, demulse_cycles, dye_cycles) 
+    flush_cycles = max(elemental_cycles, viscosity_cycles, demulse_cycles, dye_cycles)
     logging.info("FINAL FLUSH FACTOR moving from " +str(prev_product.material_code) + " to " +str(next_product.material_code) +" = max (viscosity cycles, elemental cycles, demulse cycles, dye cycles) = " +str(flush_cycles))
     return flush_cycles
 
@@ -354,7 +363,7 @@ if __name__ == "__main__":
             prev_product = find_match(selection)
             if not prev_product is None:
                 break
-    
+
         except (ValueError, KeyError) as e:
             if e is ValueError:
                 print("Selection must be a number.")
@@ -369,7 +378,7 @@ if __name__ == "__main__":
             next_product = find_match(selection)
             if not next_product is None:
                 break
-    
+
         except (ValueError, KeyError) as e:
             if e is ValueError:
                 print("Selection must be a number.")
